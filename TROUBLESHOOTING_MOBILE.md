@@ -1,75 +1,74 @@
-# Solució de problemes: Connexió des del telèfon
+# Solución de problemas: conexión desde el teléfono
 
-## Problemes comuns i solucions
+## Problemas comunes y soluciones
 
-### 1. Verificar que el telèfon i l'ordinador estiguin a la mateixa xarxa Wi-Fi
-- Assegura't que ambdós dispositius estiguin connectats a la mateixa xarxa Wi-Fi
-- No utilitzis dades mòbils al telèfon
+### 1. Verificar que el teléfono y el ordenador estén en la misma red Wi-Fi
+- Asegúrate de que ambos dispositivos estén en la misma red Wi-Fi
+- No uses datos móviles en el teléfono
 
 ### 2. Verificar el firewall de Windows
-El firewall pot estar bloquejant els ports 3000 i 3001.
+El firewall puede estar bloqueando los puertos 3000 y 3001.
 
-**Solució:**
-1. Obre "Windows Defender Firewall" o "Firewall de Windows"
-2. Clica a "Configuración avanzada"
-3. Clica a "Reglas de entrada" → "Nueva regla"
+**Solución:**
+1. Abre "Windows Defender Firewall" o "Firewall de Windows"
+2. Clic en "Configuración avanzada"
+3. Clic en "Reglas de entrada" → "Nueva regla"
 4. Selecciona "Puerto" → "TCP"
-5. Ports específics: `3000, 3001`
-6. Permet la connexió
-7. Repeteix per "Reglas de salida"
+5. Puertos específicos: `3000, 3001`
+6. Permite la conexión
+7. Repite para "Reglas de salida"
 
-**O des de PowerShell (com a administrador):**
+**O desde PowerShell (como administrador):**
 ```powershell
 New-NetFirewallRule -DisplayName "Xarxa Anglesola - Port 3000" -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow
 New-NetFirewallRule -DisplayName "Xarxa Anglesola - Port 3001" -Direction Inbound -LocalPort 3001 -Protocol TCP -Action Allow
 ```
 
 ### 3. Verificar la IP local
-Executa a la terminal:
+Ejecuta en la terminal:
 ```bash
 ipconfig | findstr /i "IPv4"
 ```
 
-Assegura't que la IP que obtens és la correcta (normalment comença per **192.168.x.x** o **10.x.x.x**).
+Asegúrate de que la IP que obtienes es la correcta (normalmente empieza por **192.168.x.x** o **10.x.x.x**).
 
-**Nota:** Si el servidor mostra una IP tipus **172.18.x.x** o **172.16–31.x.x** (Docker, WSL, etc.), el telèfon a la Wi‑Fi **no hi pot accedir**. En aquests casos, cerca la IP de la teva xarxa Wi‑Fi a la sortida d’`ipconfig` (normalment «Adaptador de xarxa Wi‑Fi» → IPv4 **192.168.x.x**) i usa aquesta manualment: `http://192.168.x.x:3000`.
+**Nota:** Si el servidor muestra una IP tipo **172.18.x.x** o **172.16–31.x.x** (Docker, WSL, etc.), el teléfono en la Wi-Fi **no puede acceder**. En esos casos, busca la IP de tu red Wi-Fi en la salida de `ipconfig` (normalmente «Adaptador de red Wi-Fi» → IPv4 **192.168.x.x**) y úsala a mano: `http://192.168.x.x:3000`.
 
-### 4. Provar la connexió
-Des del telèfon, prova a accedir directament:
-- `http://[TU_IP]:3000` (exemple: http://192.168.1.130:3000)
+### 4. Probar la conexión
+Desde el teléfono, prueba a acceder directamente:
+- `http://[TU_IP]:3000` (ejemplo: http://192.168.1.130:3000)
 
-Si no carrega, el problema és el firewall o la xarxa.
+Si no carga, el problema es el firewall o la red.
 
-### 5. Verificar que el servidor estigui escoltant correctament
-Quan inicies el servidor amb `npm run dev`, hauries de veure:
+### 5. Verificar que el servidor esté escuchando
+Al iniciar el servidor con `pnpm dev`, deberías ver:
 ```
 > Ready on http://localhost:3000
-> Accés des del telèfon: http://[TU_IP]:3000
-> Socket.io servidor a http://localhost:3001
-> Socket.io accés des del telèfon: http://[TU_IP]:3001
+> Acceso desde el teléfono: http://[TU_IP]:3000
+> Socket.io servidor en http://localhost:3001
+> Socket.io acceso desde el teléfono: http://[TU_IP]:3001
 ```
 
-### 6. Problemes amb Socket.io
-Si la pàgina web carrega però el xat no funciona:
-- Obre la consola del navegador del telèfon (Chrome: chrome://inspect)
-- Busca errors de CORS o de connexió
-- Verifica que la URL de Socket.io sigui correcta
+### 6. Problemas con Socket.IO
+Si la página web carga pero el chat no funciona:
+- Abre la consola del navegador del teléfono (Chrome: chrome://inspect)
+- Busca errores de CORS o de conexión
+- Verifica que la URL de Socket.IO sea correcta
 
-### 7. Provar des d'un altre dispositiu
-Si tens un altre ordinador a la mateixa xarxa, prova a accedir des d'allà per verificar que el problema no és específic del telèfon.
+### 7. Probar desde otro dispositivo
+Si tienes otro ordenador en la misma red, prueba a acceder desde allí para verificar que el problema no es específico del teléfono.
 
-## Comprovació ràpida
+## Comprobación rápida
 
-1. ✅ Telèfon i ordinador a la mateixa Wi-Fi
-2. ✅ Firewall permet ports 3000 i 3001
-3. ✅ IP local correcta (executa `ipconfig`)
-4. ✅ Servidor mostra la IP a la consola
-5. ✅ Accedeixes amb `http://[IP]:3000` (no localhost)
+1. Teléfono y ordenador en la misma Wi-Fi
+2. Firewall permite puertos 3000 y 3001
+3. IP local correcta (`ipconfig`)
+4. El servidor muestra la IP en la consola
+5. Accedes con `http://[IP]:3000` (no localhost)
 
-## Si res funciona
+## Si nada funciona
 
 1. Reinicia el router Wi-Fi
-2. Reinicia l'ordinador
-3. Prova des d'un altre dispositiu
-4. Verifica que no hi hagi un antivirus bloquejant les connexions
-
+2. Reinicia el ordenador
+3. Prueba desde otro dispositivo
+4. Verifica que no haya un antivirus bloqueando las conexiones

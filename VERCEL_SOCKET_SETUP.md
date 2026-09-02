@@ -1,18 +1,18 @@
-# Configurar Socket.IO per Vercel
+# Configurar Socket.IO para Vercel
 
-Aquesta guia t'explica com tenir el xat actiu a Vercel desplegant el servidor Socket.IO en un servei extern.
+Esta guía te explica cómo tener el chat activo en Vercel desplegando el servidor Socket.IO en un servicio externo.
 
-## 🎯 Per què cal un servidor extern?
+## 🎯 ¿Por qué hace falta un servidor externo?
 
-Vercel utilitza Serverless Functions que no suporten connexions WebSocket persistents. Per tant, necessitem desplegar el servidor Socket.IO (`server.js`) en un servei que suporti WebSockets.
+Vercel utiliza Serverless Functions que no soportan conexiones WebSocket persistentes. Por tanto, necesitamos desplegar el servidor Socket.IO (`server.js`) en un servicio que soporte WebSockets.
 
-## 🚀 Opció 1: Railway (Recomanat - Fàcil i Gratuït)
+## 🚀 Opción 1: Railway (Recomendado - Fácil y Gratis)
 
-Railway és perfecte per desplegar el servidor Socket.IO amb un pla gratuït generós.
+Railway es perfecto para desplegar el servidor Socket.IO con un plan gratuito generoso.
 
-### Pas 1: Preparar el servidor Socket.IO
+### Paso 1: Preparar el servidor Socket.IO
 
-Crea un fitxer `socket-server.js` a l'arrel del projecte (versió simplificada del servidor):
+Crea un archivo `socket-server.js` en la raíz del proyecto (versión simplificada del servidor):
 
 ```javascript
 const { createServer } = require('http')
@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
     const existingSocket = io.sockets.sockets.get(existingSocketId)
     if (existingSocket) {
       existingSocket.emit('session-terminated', { 
-        message: 'Una nova sessió s\'ha obert des d\'un altre dispositiu' 
+        message: 'Se ha abierto una nueva sesión desde otro dispositivo' 
       })
       existingSocket.disconnect(true)
     }
@@ -217,11 +217,11 @@ io.on('connection', (socket) => {
 })
 
 httpServer.listen(port, () => {
-  console.log(`Socket.IO servidor corrent al port ${port}`)
+  console.log(`Socket.IO servidor ejecutándose en el puerto ${port}`)
 })
 ```
 
-### Pas 2: Crear package.json per al servidor Socket.IO
+### Paso 2: Crear package.json para el servidor Socket.IO
 
 Crea `socket-server-package.json`:
 
@@ -240,100 +240,100 @@ Crea `socket-server-package.json`:
 }
 ```
 
-### Pas 3: Desplegar a Railway
+### Paso 3: Desplegar en Railway
 
-1. **Crea compte a Railway**: [https://railway.app](https://railway.app)
+1. **Crea una cuenta en Railway**: [https://railway.app](https://railway.app)
 
-2. **Crea un nou projecte**:
-   - Clic a "New Project"
+2. **Crea un nuevo proyecto**:
+   - Clic en "New Project"
    - Selecciona "Deploy from GitHub repo"
-   - Selecciona el teu repositori
+   - Selecciona tu repositorio
 
-3. **Configura el servei**:
-   - **Root Directory**: Deixa buit (o crea una carpeta `socket-server`)
+3. **Configura el servicio**:
+   - **Root Directory**: Déjalo vacío (o crea una carpeta `socket-server`)
    - **Build Command**: `npm install && npx prisma generate`
    - **Start Command**: `node socket-server.js`
-   - **Port**: Railway assignarà automàticament (usa `process.env.PORT`)
+   - **Port**: Railway lo asignará automáticamente (usa `process.env.PORT`)
 
-4. **Variables d'entorn a Railway**:
+4. **Variables de entorno en Railway**:
    ```
-   DATABASE_URL=postgresql://... (la mateixa que Vercel)
+   DATABASE_URL=postgresql://... (la misma que Vercel)
    PORT=3001
    NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-app.vercel.app,https://www.tu-app.vercel.app
    ```
 
-5. **Obtenir la URL del servidor**:
-   - Railway et donarà una URL com: `https://tu-servidor.up.railway.app`
-   - Copia aquesta URL
+5. **Obtener la URL del servidor**:
+   - Railway te dará una URL como: `https://tu-servidor.up.railway.app`
+   - Copia esta URL
 
-### Pas 4: Configurar Vercel
+### Paso 4: Configurar Vercel
 
-A Vercel Dashboard → Project → Settings → Environment Variables:
+En Vercel Dashboard → Project → Settings → Environment Variables:
 
 ```
 NEXT_PUBLIC_SOCKET_URL=https://tu-servidor.up.railway.app
 NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-app.vercel.app,https://www.tu-app.vercel.app
 ```
 
-### Pas 5: Actualitzar el client
+### Paso 5: Actualizar el cliente
 
-El client ja està configurat per usar `NEXT_PUBLIC_SOCKET_URL`. Només cal assegurar-te que no estigui desactivat a producció.
+El cliente ya está configurado para usar `NEXT_PUBLIC_SOCKET_URL`. Solo hay que asegurarse de que no esté desactivado en producción.
 
-## 🚀 Opció 2: Render (Alternativa)
+## 🚀 Opción 2: Render (Alternativa)
 
-Render també ofereix un pla gratuït amb suport per WebSockets.
+Render también ofrece un plan gratuito con soporte para WebSockets.
 
-1. **Crea compte**: [https://render.com](https://render.com)
+1. **Crea una cuenta**: [https://render.com](https://render.com)
 
 2. **Crea un Web Service**:
-   - Connecta el teu repositori GitHub
+   - Conecta tu repositorio GitHub
    - **Environment**: Node
    - **Build Command**: `npm install && npx prisma generate`
    - **Start Command**: `node socket-server.js`
 
-3. **Variables d'entorn** (igual que Railway)
+3. **Variables de entorno** (igual que Railway)
 
-4. **Obtenir URL**: Render et donarà una URL com `https://tu-servidor.onrender.com`
+4. **Obtener URL**: Render te dará una URL como `https://tu-servidor.onrender.com`
 
-## 🚀 Opció 3: Fly.io (Alternativa)
+## 🚀 Opción 3: Fly.io (Alternativa)
 
-Fly.io també suporta WebSockets i té un pla gratuït.
+Fly.io también soporta WebSockets y tiene un plan gratuito.
 
-1. **Instal·la Fly CLI**: `curl -L https://fly.io/install.sh | sh`
+1. **Instala Fly CLI**: `curl -L https://fly.io/install.sh | sh`
 
 2. **Crea app**: `fly launch`
 
-3. **Configura**: Segueix les instruccions de Fly.io
+3. **Configura**: Sigue las instrucciones de Fly.io
 
-## ✅ Verificació
+## ✅ Verificación
 
-Després de configurar tot:
+Después de configurar todo:
 
-1. **Desplega el servidor Socket.IO** a Railway/Render/Fly.io
-2. **Configura `NEXT_PUBLIC_SOCKET_URL`** a Vercel amb la URL del servidor
-3. **Actualitza el client** per no desactivar Socket.IO a producció
-4. **Prova el xat** a la teva aplicació Vercel
+1. **Despliega el servidor Socket.IO** en Railway/Render/Fly.io
+2. **Configura `NEXT_PUBLIC_SOCKET_URL`** en Vercel con la URL del servidor
+3. **Actualiza el cliente** para no desactivar Socket.IO en producción
+4. **Prueba el chat** en tu aplicación Vercel
 
-## 🔧 Actualitzar el client per producció
+## 🔧 Actualizar el cliente para producción
 
-Necessitem actualitzar `app/app/chat/page.tsx` per permetre Socket.IO a producció quan hi ha `NEXT_PUBLIC_SOCKET_URL` configurada.
+Necesitamos actualizar `app/app/chat/page.tsx` para permitir Socket.IO en producción cuando hay `NEXT_PUBLIC_SOCKET_URL` configurada.
 
-## 📝 Notes Importants
+## 📝 Notas importantes
 
-- **Base de dades compartida**: El servidor Socket.IO i Vercel han de compartir la mateixa base de dades PostgreSQL
-- **CORS**: Assegura't que `NEXT_PUBLIC_ALLOWED_ORIGINS` inclogui la URL de Vercel
-- **Costs**: Railway i Render tenen plans gratuïts generosos, però revisa els límits
-- **Monitoring**: Considera afegir monitoring per al servidor Socket.IO
+- **Base de datos compartida**: El servidor Socket.IO y Vercel deben compartir la misma base de datos PostgreSQL
+- **CORS**: Asegúrate de que `NEXT_PUBLIC_ALLOWED_ORIGINS` incluya la URL de Vercel
+- **Costes**: Railway y Render tienen planes gratuitos generosos, pero revisa los límites
+- **Monitoring**: Considera añadir monitoring para el servidor Socket.IO
 
 ## 🆘 Troubleshooting
 
-### El xat no es connecta
-- Verifica que `NEXT_PUBLIC_SOCKET_URL` estigui ben configurada a Vercel
-- Comprova que el servidor Socket.IO estigui corrent
-- Revisa els logs del servidor Socket.IO
-- Verifica CORS a la configuració del servidor
+### El chat no se conecta
+- Verifica que `NEXT_PUBLIC_SOCKET_URL` esté bien configurada en Vercel
+- Comprueba que el servidor Socket.IO esté en ejecución
+- Revisa los logs del servidor Socket.IO
+- Verifica CORS en la configuración del servidor
 
-### Errors de base de dades
-- Assegura't que el servidor Socket.IO tingui accés a la base de dades
-- Verifica que `DATABASE_URL` estigui ben configurada
-- Comprova que Prisma Client estigui generat (`npx prisma generate`)
+### Errores de base de datos
+- Asegúrate de que el servidor Socket.IO tenga acceso a la base de datos
+- Verifica que `DATABASE_URL` esté bien configurada
+- Comprueba que Prisma Client esté generado (`npx prisma generate`)

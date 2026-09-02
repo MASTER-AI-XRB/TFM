@@ -1,20 +1,20 @@
 flowchart TD
-  U["Usuari"] --> UI["Frontend Next.js (Vercel)"]
+  U["Usuario"] --> UI["Frontend Next.js (Vercel)"]
   UI -->|HTTP| API["API Routes Next.js"]
   UI -->|Socket.IO| WS["Servidor Socket.IO (server.js)"]
   API --> DB[(PostgreSQL)]
   WS --> DB
   API --> BLOB["Vercel Blob"]
-  WS --> NOTIF["Notificacions al navegador"]
+  WS --> NOTIF["Notificaciones en el navegador"]
 
   subgraph Frontend
-    UI --> P1["Pàgina Login / Registre"]
-    UI --> P2["Productes"]
-    UI --> P3["Preferits"]
-    UI --> P4["Els meus productes"]
-    UI --> P5["Detall producte"]
-    UI --> P6["Xat"]
-    UI --> P7["Preferències notificacions"]
+    UI --> P1["Página Login / Registro"]
+    UI --> P2["Productos"]
+    UI --> P3["Favoritos"]
+    UI --> P4["Mis productos"]
+    UI --> P5["Detalle de producto"]
+    UI --> P6["Chat"]
+    UI --> P7["Preferencias de notificaciones"]
   end
 
   subgraph Backend
@@ -22,6 +22,6 @@ flowchart TD
     API --> A2["/api/products"]
     API --> A3["/api/favorites"]
     API --> A4["/api/notification-preferences"]
-    WS --> S1["Events Socket.IO"]
+    WS --> S1["Eventos Socket.IO"]
     WS --> S2["/notify"]
   end

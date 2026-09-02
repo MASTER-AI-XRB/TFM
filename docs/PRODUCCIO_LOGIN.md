@@ -1,88 +1,88 @@
-# Producció: Login, OAuth i Configuració
+# Producción: login, OAuth y configuración
 
-Els fluxos de login (formulari, Google, desvincular, canviar compte) funcionen igual en producció. Cal assegurar **variables d’entorn**, **Google OAuth** i **base de dades**.
+Los flujos de login (formulario, Google, desvincular, cambiar cuenta) funcionan igual en producción. Hay que asegurar **variables de entorno**, **Google OAuth** y **base de datos**.
 
 ---
 
-## 1. Variables d’entorn obligatòries
+## 1. Variables de entorno obligatorias
 
 ### Vercel (Next.js + API routes)
 
-| Variable | Obligatòria | Notes |
-|----------|-------------|--------|
-| `NEXTAUTH_URL` | **Sí** | URL pública de l’app **sense** barra final (ex: `https://xarxanglesola.vercel.app`). A Vercel pots omitir-la si tens `VERCEL_URL` (el codi fa fallback). |
-| `AUTH_SECRET` | **Sí** | Necessària per sessions i cookies. En producció sense ella el middleware retorna 500 per APIs que no siguin GET/HEAD/OPTIONS. |
-| `GOOGLE_CLIENT_ID` | Sí (si uses Google) | De Google Cloud Console. |
-| `GOOGLE_CLIENT_SECRET` | Sí (si uses Google) | De Google Cloud Console. |
+| Variable | Obligatoria | Notas |
+|----------|-------------|-------|
+| `NEXTAUTH_URL` | **Sí** | URL pública de la app **sin** barra final (ej.: `https://xarxanglesola.vercel.app`). En Vercel puedes omitirla si tienes `VERCEL_URL` (el código hace fallback). |
+| `AUTH_SECRET` | **Sí** | Necesaria para sesiones y cookies. En producción, sin ella el middleware devuelve 500 en APIs que no sean GET/HEAD/OPTIONS. |
+| `GOOGLE_CLIENT_ID` | Sí (si usas Google) | De Google Cloud Console. |
+| `GOOGLE_CLIENT_SECRET` | Sí (si usas Google) | De Google Cloud Console. |
 | `DATABASE_URL` | **Sí** | PostgreSQL (Neon, Supabase, Railway, etc.). |
 
-### Railway (si desplegues l’app Next.js allà)
+### Railway (si despliegas la app Next.js allí)
 
-- **`NEXTAUTH_URL`**: **Cal definir-la sempre**. Railway no dóna `VERCEL_URL`, i el fallback de `lib/nextauth.ts` només s’aplica a Vercel. Posar la URL pública del desplegament a Railway (ex: `https://xxx.up.railway.app`).
-- La resta: `AUTH_SECRET`, `GOOGLE_*`, `DATABASE_URL`, igual que a Vercel.
+- **`NEXTAUTH_URL`**: **hay que definirla siempre**. Railway no da `VERCEL_URL`, y el fallback de `lib/nextauth.ts` solo se aplica en Vercel. Pon la URL pública del despliegue en Railway (ej.: `https://xxx.up.railway.app`).
+- El resto: `AUTH_SECRET`, `GOOGLE_*`, `DATABASE_URL`, igual que en Vercel.
 
-### Opcionals però recomanades
+### Opcionales pero recomendadas
 
-- `NEXT_PUBLIC_APP_URL`: URL de l’app (per links, etc.).
-- `NEXT_PUBLIC_ALLOWED_ORIGINS`: Orígens permesos per al middleware (CORS). Si l’app és a `https://xarxanglesola.vercel.app`, afegir aquest valor. Si tens app + Socket en dominis diferents, incloure’ls tots.
+- `NEXT_PUBLIC_APP_URL`: URL de la app (para links, etc.).
+- `NEXT_PUBLIC_ALLOWED_ORIGINS`: orígenes permitidos para el middleware (CORS). Si la app está en `https://xarxanglesola.vercel.app`, añade ese valor. Si tienes app + Socket en dominios distintos, inclúyelos todos.
 
 ---
 
-## 2. Google OAuth (Producció)
+## 2. Google OAuth (producción)
 
-A [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → el teu client OAuth 2.0:
+En [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → tu cliente OAuth 2.0:
 
-**Authorized redirect URIs** ha d’incloure:
+**Authorized redirect URIs** debe incluir:
 
-- Producció Vercel:  
-  `https://el-teu-domini.vercel.app/api/auth/callback/google`
-- Producció Railway (si s’usa):  
-  `https://el-teu-domini.up.railway.app/api/auth/callback/google`
+- Producción Vercel:  
+  `https://tu-dominio.vercel.app/api/auth/callback/google`
+- Producción Railway (si se usa):  
+  `https://tu-dominio.up.railway.app/api/auth/callback/google`
 - Local:  
-  `http://localhost:3000/api/auth/callback/google` (o el port que facis servir).
+  `http://localhost:3000/api/auth/callback/google` (o el puerto que uses).
 
-**Authorized JavaScript origins** (si ho tens configurat):
+**Authorized JavaScript origins** (si lo tienes configurado):
 
-- Les mateixes bases: `https://...vercel.app`, `https://...railway.app`, `http://localhost:3000`.
+- Las mismas bases: `https://...vercel.app`, `https://...railway.app`, `http://localhost:3000`.
 
-Si falta la URI de producció, veuràs errors tipus `redirect_uri_mismatch` o `OAuthSignin` en clicar «Continua amb Google».
-
----
-
-## 3. Base de dades (Prisma)
-
-- **Schema**: `User.lastLoginAt` s’ha afegit al schema. En producció la BD ha d’estar actualitzada.
-- **Com fer-ho**:
-  - Amb migracions: `npx prisma migrate deploy` (després de configurar `DATABASE_URL` de producció).
-  - Amb `db push`: `npx prisma db push` (adequat si no usas migracions a prod).
-
-Sense això, les APIs que llegeixen/escriuen `lastLoginAt` poden fallar.
+Si falta la URI de producción, verás errores tipo `redirect_uri_mismatch` o `OAuthSignin` al pulsar «Continuar con Google».
 
 ---
 
-## 4. Cookies i dominis
+## 3. Base de datos (Prisma)
 
-- Sessions (NextAuth + `xarxa_session`) es configuren amb `secure: true` en producció i `sameSite: 'lax'`.
-- No cal configurar domini de cookies si l’app es serveix des del mateix domini (ex: tot a `xarxanglesola.vercel.app`).
-- Si l’app i el Socket estan en dominis diferents (ex: app a Vercel, Socket a Railway), cal que `NEXT_PUBLIC_ALLOWED_ORIGINS` inclogui ambdós i que CORS/cookies estiguin bé als serveis que facin APIs; els fluxos de **login en si** no canvien.
+- **Schema**: `User.lastLoginAt` se ha añadido al schema. En producción la BD debe estar actualizada.
+- **Cómo hacerlo**:
+  - Con migraciones: `pnpm exec prisma migrate deploy` (después de configurar `DATABASE_URL` de producción).
+  - Con `db push`: `pnpm exec prisma db push` (adecuado si no usas migraciones en prod).
 
----
-
-## 5. Resum per entorn
-
-| Entorn | NEXTAUTH_URL | Altres |
-|--------|----------------|--------|
-| **Vercel** | Opcional si hi ha `VERCEL_URL`; recomanat posar-la igualment | `AUTH_SECRET`, `GOOGLE_*`, `DATABASE_URL`. Redirect URI de Google = `https://...vercel.app/api/auth/callback/google`. |
-| **Railway** | **Obligatòria**: URL pública del deploy | Mateix que a dalt. Redirect URI = `https://...railway.app/api/auth/callback/google`. |
-| **Local** | Opcional (`http://localhost:3000`) | Google redirect URI inclou `http://localhost:3000/...`. |
+Sin esto, las APIs que leen/escriben `lastLoginAt` pueden fallar.
 
 ---
 
-## 6. Comprovar que tot va bé
+## 4. Cookies y dominios
 
-1. **Formulari**: Login / registre amb nickname + contrasenya.
-2. **Google**: «Continua amb Google» → veure selector de comptes → entrar a l’app.
-3. **Configuració**: «Desvincula Google» → logout → tornar a entrar amb formulari o Google.
-4. **Canviar compte**: «Canvia el compte de Google» → logout → selector de Google → triar un altre compte i entrar.
+- Las sesiones (NextAuth + `xarxa_session`) se configuran con `secure: true` en producción y `sameSite: 'lax'`.
+- No hace falta configurar dominio de cookies si la app se sirve desde el mismo dominio (ej.: todo en `xarxanglesola.vercel.app`).
+- Si la app y el Socket están en dominios distintos (ej.: app en Vercel, Socket en Railway), `NEXT_PUBLIC_ALLOWED_ORIGINS` debe incluir ambos y CORS/cookies deben estar bien en los servicios que hagan APIs; los flujos de **login en sí** no cambian.
 
-Si tot això funciona en local i en producció tens les variables, Google i la BD correctes, el comportament ha de ser el mateix a Vercel i a Railway.
+---
+
+## 5. Resumen por entorno
+
+| Entorno | NEXTAUTH_URL | Otros |
+|---------|--------------|-------|
+| **Vercel** | Opcional si hay `VERCEL_URL`; recomendado ponerla igual | `AUTH_SECRET`, `GOOGLE_*`, `DATABASE_URL`. Redirect URI de Google = `https://...vercel.app/api/auth/callback/google`. |
+| **Railway** | **Obligatoria**: URL pública del deploy | Igual que arriba. Redirect URI = `https://...railway.app/api/auth/callback/google`. |
+| **Local** | Opcional (`http://localhost:3000`) | Google redirect URI incluye `http://localhost:3000/...`. |
+
+---
+
+## 6. Comprobar que todo va bien
+
+1. **Formulario**: login / registro con nickname + contraseña.
+2. **Google**: «Continuar con Google» → selector de cuentas → entrar a la app.
+3. **Configuración**: «Desvincular Google» → logout → volver a entrar con formulario o Google.
+4. **Cambiar cuenta**: «Cambiar la cuenta de Google» → logout → selector de Google → elegir otra cuenta y entrar.
+
+Si todo esto funciona en local y en producción tienes las variables, Google y la BD correctos, el comportamiento debe ser el mismo en Vercel y en Railway.

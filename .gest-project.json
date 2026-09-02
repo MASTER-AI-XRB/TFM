@@ -1,0 +1,10 @@
+{
+  "name": "XARXANGLESOLA",
+  "description": "Aplicación web de préstamo e intercambio de productos entre vecinos, con chat en tiempo real. Trabajo de Fin de Máster.",
+  "status": "actiu",
+  "startDate": "2026-02-15",
+  "endDate": null,
+  "tags": ["nextjs", "typescript", "prisma", "socket.io", "tailwind", "tfm"],
+  "resources": ["Vercel", "Railway"],
+  "color": "#38bdf8"
+}

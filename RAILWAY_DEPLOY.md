@@ -1,79 +1,79 @@
-# Guia de Desplegament a Railway - Servidor Socket.IO
+# Guía de despliegue en Railway - Servidor Socket.IO
 
-Aquesta guia t'explica pas a pas com desplegar el servidor Socket.IO a Railway.
+Esta guía explica paso a paso cómo desplegar el servidor Socket.IO en Railway.
 
-## 📋 Requisits Previs
+## Requisitos previos
 
-1. **Compte de Railway**: [https://railway.app](https://railway.app) (gratuït)
-2. **Repositori GitHub**: El teu projecte ha d'estar a GitHub
-3. **Base de dades PostgreSQL**: La mateixa que utilitzes a Vercel
+1. **Cuenta de Railway**: [https://railway.app](https://railway.app) (gratuita)
+2. **Repositorio GitHub**: el proyecto debe estar en GitHub
+3. **Base de datos PostgreSQL**: la misma que usas en Vercel
 
-## 🚀 Pas 1: Crear Projecte a Railway
+## Paso 1: Crear proyecto en Railway
 
-1. Accedeix a [Railway.app](https://railway.app) i inicia sessió amb GitHub
-2. Clic a **"New Project"**
+1. Accede a [Railway.app](https://railway.app) e inicia sesión con GitHub
+2. Clic en **"New Project"**
 3. Selecciona **"Deploy from GitHub repo"**
-4. Selecciona el teu repositori `XARXANGLESOLA`
+4. Selecciona el repositorio `XARXANGLESOLA`
 
-## ⚙️ Pas 2: Configurar el Servei
+## Paso 2: Configurar el servicio
 
-### Opció A: Configuració Manual (Recomanat)
+### Opción A: Configuración manual (recomendado)
 
-1. Railway detectarà automàticament el projecte
-2. A la configuració del servei, configura:
-   - **Root Directory**: Deixa buit (o `/` si demana alguna cosa)
-   - **Build Command**: Deixa buit (Railway ho detectarà automàticament)
+1. Railway detectará el proyecto automáticamente
+2. En la configuración del servicio:
+   - **Root Directory**: déjalo vacío (o `/` si lo pide)
+   - **Build Command**: déjalo vacío (Railway lo detectará)
    - **Start Command**: `node socket-server.js`
 
-### Opció B: Usant railway.json
+### Opción B: Usando railway.json
 
-Si Railway no detecta la configuració automàticament, assegura't que el fitxer `railway.json` estigui al repositori.
+Si Railway no detecta la configuración, asegúrate de que `railway.json` esté en el repositorio.
 
-## 🔑 Pas 3: Configurar Variables d'Entorn
+## Paso 3: Configurar variables de entorno
 
-A Railway Dashboard → Servei → Variables, afegeix:
+En Railway Dashboard → Servicio → Variables, añade:
 
-### Variables Obligatòries:
+### Variables obligatorias:
 
 ```
-DATABASE_URL=postgresql://usuari:contrasenya@host:5432/nom_base_dades?schema=public
+DATABASE_URL=postgresql://usuario:contraseña@host:5432/nombre_base_datos?schema=public
 NODE_ENV=production
 PORT=3001
-AUTH_SECRET=<el mateix que a Vercel>
-NOTIFY_SECRET=<el mateix que AUTH_SECRET o un secret per /notify>
+AUTH_SECRET=<el mismo que en Vercel>
+NOTIFY_SECRET=<el mismo que AUTH_SECRET o un secreto para /notify>
 ```
 
-### Variables Opcionals (recomanades):
+### Variables opcionales (recomendadas):
 
 ```
 NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-app.vercel.app,https://www.tu-app.vercel.app
 NEXT_PUBLIC_APP_URL=https://tu-app.vercel.app
 ```
 
-Per **notificacions amb l’app tancada** (Web Push), afegeix també:
+Para **notificaciones con la app cerrada** (Web Push), añade también:
 
 ```
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
 ```
 
-**Important**: 
-- `DATABASE_URL`: Ha de ser la **mateixa** que utilitzes a Vercel
-- `PORT`: Railway assignarà automàticament un port, però pots especificar 3001
-- `NEXT_PUBLIC_ALLOWED_ORIGINS`: Inclou la URL de la teva aplicació Vercel
+**Importante**:
+- `DATABASE_URL`: debe ser la **misma** que usas en Vercel
+- `PORT`: Railway asignará un puerto; puedes especificar 3001
+- `NEXT_PUBLIC_ALLOWED_ORIGINS`: incluye la URL de tu aplicación Vercel
 
-## 🔧 Pas 4: Configurar Build i Deploy
+## Paso 4: Configurar build y deploy
 
-Railway detectarà automàticament:
-- **Node.js** com a runtime
-- **npm install** per instal·lar dependències
-- **npx prisma generate** (gràcies al `postinstall` script)
+Railway detectará automáticamente:
+- **Node.js** como runtime
+- instalación de dependencias
+- **npx prisma generate** (gracias al script `postinstall`)
 
-Si hi ha problemes, pots configurar manualment:
+Si hay problemas, configura manualmente:
 
 ### Build Command:
 ```bash
-npm install && npx prisma generate
+pnpm install && pnpm exec prisma generate
 ```
 
 ### Start Command:
@@ -81,115 +81,113 @@ npm install && npx prisma generate
 node socket-server.js
 ```
 
-## 📡 Pas 5: Obtenir la URL del Servidor
+## Paso 5: Obtener la URL del servidor
 
-1. Un cop desplegat, Railway et donarà una URL com:
+1. Una vez desplegado, Railway te dará una URL como:
    - `https://tu-servidor.up.railway.app`
-   - O una URL personalitzada si has configurat un domini
+   - o una URL personalizada si has configurado un dominio
 
-2. **Copia aquesta URL** - la necessitaràs per Vercel
+2. **Copia esa URL**: la necesitarás en Vercel
 
-## ✅ Pas 6: Verificar el Desplegament
+## Paso 6: Verificar el despliegue
 
-1. Obre la URL del servidor a un navegador
-2. Hauries de veure un error 404 o similar (és normal, no és una pàgina web)
-3. Revisa els logs a Railway per veure:
+1. Abre la URL del servidor en un navegador
+2. Deberías ver un error 404 o similar (es normal: no es una página web)
+3. Revisa los logs en Railway:
    ```
-   🚀 Socket.IO servidor corrent al port XXXX
-   📡 Orígens permesos: [...]
+   Socket.IO servidor corriendo en el puerto XXXX
+   Orígenes permitidos: [...]
    ```
 
-## 🔗 Pas 7: Configurar Vercel
+## Paso 7: Configurar Vercel
 
-Ara configura Vercel per connectar-se al servidor Railway:
+Conecta Vercel al servidor Railway:
 
 1. Vercel Dashboard → Project → Settings → Environment Variables
-2. Afegeix:
+2. Añade:
    ```
    NEXT_PUBLIC_SOCKET_URL=https://tu-servidor.up.railway.app
    ```
-3. Fes un redeploy a Vercel
+3. Haz un redeploy en Vercel
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Error: "Cannot find module '@prisma/client'"
 
-**Solució**: Assegura't que el build command inclou `npx prisma generate`:
+Asegúrate de que el build incluye `prisma generate`:
 ```bash
-npm install && npx prisma generate
+pnpm install && pnpm exec prisma generate
 ```
 
-O verifica que `package.json` tingui:
+O verifica que `package.json` tenga:
 ```json
 "postinstall": "prisma generate"
 ```
 
 ### Error: "Database connection failed"
 
-**Solució**: 
-- Verifica que `DATABASE_URL` estigui ben configurada
-- Assegura't que la base de dades accepta connexions externes
-- Comprova que el firewall permet connexions des de Railway
+- Verifica que `DATABASE_URL` esté bien configurada
+- Asegúrate de que la base de datos acepta conexiones externas
+- Comprueba que el firewall permite conexiones desde Railway
 
 ### Error: "Port already in use"
 
-**Solució**: Railway assigna automàticament el port. Assegura't que el codi usa `process.env.PORT`:
+Railway asigna el puerto automáticamente. El código debe usar `process.env.PORT`:
 ```javascript
 const port = process.env.PORT || 3001
 ```
 
 ### Error: "Build failed"
 
-**Possibles causes**:
-1. **Dependències faltants**: Verifica que totes les dependències estiguin a `package.json`
-2. **Prisma no genera**: Assegura't que `prisma/schema.prisma` existeix i està ben configurat
-3. **Node version**: Railway detecta automàticament, però pots especificar a `package.json`:
+Posibles causas:
+1. **Dependencias faltantes**: verifica `package.json`
+2. **Prisma no genera**: `prisma/schema.prisma` debe existir y estar bien configurado
+3. **Versión de Node**: puedes especificarla en `package.json`:
    ```json
    "engines": {
      "node": ">=18.0.0"
    }
    ```
 
-### El servidor no inicia
+### El servidor no arranca
 
-**Revisa els logs**:
-1. Railway Dashboard → Servei → Logs
-2. Busca errors de connexió a la base de dades
-3. Verifica que totes les variables d'entorn estiguin configurades
+Revisa los logs:
+1. Railway Dashboard → Servicio → Logs
+2. Busca errores de conexión a la base de datos
+3. Verifica que todas las variables de entorno estén configuradas
 
-### CORS errors
+### Errores CORS
 
-**Solució**: Assegura't que `NEXT_PUBLIC_ALLOWED_ORIGINS` inclogui la URL de Vercel:
+Asegúrate de que `NEXT_PUBLIC_ALLOWED_ORIGINS` incluye la URL de Vercel:
 ```
 NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-app.vercel.app,https://www.tu-app.vercel.app
 ```
 
-## 📝 Notes Importants
+## Notas importantes
 
-- **Base de dades compartida**: El servidor Socket.IO i Vercel han de compartir la **mateixa** base de dades PostgreSQL
-- **HTTPS**: Railway proporciona HTTPS automàticament
-- **Port**: Railway assigna el port automàticament - no cal especificar-lo manualment
-- **Logs**: Pots veure els logs en temps real a Railway Dashboard
-- **Redeploy**: Cada push al repositori farà un redeploy automàtic
+- **Base de datos compartida**: el servidor Socket.IO y Vercel deben compartir la **misma** base de datos PostgreSQL
+- **HTTPS**: Railway lo proporciona automáticamente
+- **Puerto**: Railway lo asigna; no hace falta fijarlo a mano
+- **Logs**: en tiempo real en Railway Dashboard
+- **Redeploy**: cada push al repositorio hace un redeploy automático
 
-## 🔄 Actualitzar el Desplegament
+## Actualizar el despliegue
 
-Per actualitzar el servidor:
-1. Fes push dels canvis al repositori GitHub
-2. Railway farà un redeploy automàtic
-3. O pots fer clic a "Redeploy" a Railway Dashboard
+1. Haz push de los cambios a GitHub
+2. Railway hará un redeploy automático
+3. O pulsa "Redeploy" en Railway Dashboard
 
-## 💰 Costs
+## Costes
 
-Railway ofereix:
-- **Pla gratuït**: $5 de crèdit gratuït al mes
-- **Hobby**: $5/mes amb més recursos
-- El servidor Socket.IO és lleuger i hauria de cabre al pla gratuït
+Railway ofrece:
+- **Plan gratuito**: 5 $ de crédito al mes
+- **Hobby**: 5 $/mes con más recursos
+- El servidor Socket.IO es ligero y debería caber en el plan gratuito
 
-## 🆘 Suport
+## Soporte
 
-Si tens problemes:
-1. Revisa els logs a Railway Dashboard
-2. Verifica les variables d'entorn
-3. Comprova que la base de dades estigui accessible
-4. Consulta la documentació de Railway: [https://docs.railway.app](https://docs.railway.app)
+Si hay problemas:
+1. Revisa los logs en Railway Dashboard
+2. Verifica las variables de entorno
+3. Comprueba que la base de datos sea accesible
+4. Documentación de Railway: [https://docs.railway.app](https://docs.railway.app)

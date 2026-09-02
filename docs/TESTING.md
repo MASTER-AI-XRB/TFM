@@ -1,82 +1,81 @@
 # Tests
 
-## Base de dades de test
-Per evitar tocar la BD de producció, crea un fitxer `.env.test` (no versionat) amb:
+## Base de datos de test
+
+Para no tocar la BD de producción, crea un archivo `.env.test` (no versionado) con:
 
 ```
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public"
-# Opcional
 AUTH_SECRET="change-me-for-tests"
 ```
 
-Playwright carregarà automàticament `.env.test` i arrencarà el servidor amb aquesta BD.
+Playwright cargará automáticamente `.env.test` y arrancará el servidor con esa BD.
 
-## Com executar
+## Cómo ejecutar
 
-1) Instal·lar navegadors (1 vegada):
-
-```
-npx playwright install
-```
-
-2) Tests unitaris:
+1) Instalar navegadores (1 vez):
 
 ```
-npm run test:unit
+pnpm exec playwright install
+```
+
+2) Tests unitarios:
+
+```
+pnpm test:unit
 ```
 
 3) Tests e2e:
 
-**Opció A – Playwright engega el servidor (recomanat)**  
-Assegura’t que **cap procés** està usant els ports 3005 i 3006. Després:
+**Opción A – Playwright arranca el servidor (recomendado)**  
+Asegúrate de que **ningún proceso** está usando los puertos 3005 y 3006. Después:
 
 ```
-npx playwright test tests/e2e/favorites.spec.ts
+pnpm exec playwright test tests/e2e/favorites.spec.ts
 ```
 
-**Opció B – Servidor engegat a mà (per exemple per fer servir `--ui`)**  
-En una terminal, engega l’app al port que fa servir Playwright:
+**Opción B – Servidor arrancado a mano (por ejemplo para usar `--ui`)**  
+En una terminal, arranca la app en el puerto que usa Playwright:
 
 ```
-npm run dev:playwright
+pnpm dev:playwright
 ```
 
-En una altra terminal:
+En otra terminal:
 
 ```
-npx playwright test tests/e2e/favorites.spec.ts --ui
+pnpm exec playwright test tests/e2e/favorites.spec.ts --ui
 ```
 
-**Si surt "address already in use" (3005 o 3006)**  
-Allibera els ports. A PowerShell (executar com a administrador si cal):
+**Si sale "address already in use" (3005 o 3006)**  
+Libera los puertos. En PowerShell (como administrador si hace falta):
 
 ```powershell
-# Quin procés usa el 3005
 Get-NetTCPConnection -LocalPort 3005 -ErrorAction SilentlyContinue | Select-Object OwningProcess
-# Matar el procés (substitueix PID pel número que surti)
 Stop-Process -Id PID -Force
 ```
 
-O tanca totes les terminals on tinguis `npm run dev` o Playwright i torna a obrir-ne una de nova.
+O cierra todas las terminales donde tengas `pnpm dev` o Playwright y abre una nueva.
 
-## Provar notificacions (reserva / preferits) des de local
+## Probar notificaciones (reserva / favoritos) desde local
 
-Sí, **és correcte** provar des de local i que la notificació arribi a un usuari en producció, si configures l'entorn així:
+Sí, **es correcto** probar desde local y que la notificación llegue a un usuario en producción, si configuras el entorno así:
 
-1. Al teu **.env local**, posa la URL del socket de **producció** i el mateix secret que fa servir el servidor de producció:
-   - `NEXT_PUBLIC_SOCKET_URL=https://el-teu-servidor.up.railway.app` (o la URL del teu socket en producció)
-   - `AUTH_SECRET` (o `NOTIFY_SECRET`) **igual** que el que té el servidor Socket en producció (Railway, etc.)
+1. En tu **.env local**, pon la URL del socket de **producción** y el mismo secreto que usa el servidor de producción:
+   - `NEXT_PUBLIC_SOCKET_URL=https://tu-servidor.up.railway.app`
+   - `AUTH_SECRET` (o `NOTIFY_SECRET`) **igual** que el del servidor Socket en producción (Railway, etc.)
 
-2. En fer **reservar** o **desreservar** des de l'app en local, la teva API (local) farà un `POST` a `NEXT_PUBLIC_SOCKET_URL/notify`. Si aquesta URL és la de producció, la notificació s'envia al servidor de producció i l'usuari que ha de rebre-la (per exemple qui té el producte a preferits) la rep en producció (in-app si té l'app oberta, o push si ho tens configurat).
+2. Al **reservar** o **desreservar** desde la app en local, tu API local hará un `POST` a `NEXT_PUBLIC_SOCKET_URL/notify`. Si esa URL es la de producción, la notificación se envía al servidor de producción y el usuario que debe recibirla (por ejemplo quien tiene el producto en favoritos) la recibe en producción (in-app si tiene la app abierta, o push si está configurado).
 
-Requisits: el servidor Socket en producció ha de rebre requests del teu ordinador (no bloquejar per IP/firewall) i el **secret** ha de coincidir; si no, el `/notify` retornarà 401 Unauthorized.
+Requisitos: el servidor Socket en producción debe aceptar requests de tu ordenador (no bloquear por IP/firewall) y el **secreto** debe coincidir; si no, `/notify` devolverá 401 Unauthorized.
 
-Si en local tens `NEXT_PUBLIC_SOCKET_URL=http://localhost:3001`, les notificacions només aniran al teu socket local i **no** arribaran a usuaris en producció.
+Si en local tienes `NEXT_PUBLIC_SOCKET_URL=http://localhost:3001`, las notificaciones solo irán a tu socket local y **no** llegarán a usuarios en producción.
 
-## Neteja automàtica
-- Després d’executar els e2e, la BD de test es reinicia automàticament.
-- Si ho vols fer manualment:
+## Limpieza automática
+
+- Tras ejecutar los e2e, la BD de test se reinicia automáticamente.
+- Si lo quieres hacer a mano:
 
 ```
-npm run test:db:reset
+pnpm test:db:reset
 ```

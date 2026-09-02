@@ -1,35 +1,35 @@
-# Guia de Deploy a Vercel - Xarxa Anglesola
+# Guía de deploy en Vercel - Xarxa Anglesola
 
-Aquesta guia t'explica com desplegar el projecte a Vercel de forma ràpida i senzilla.
+Esta guía explica cómo desplegar el proyecto en Vercel de forma rápida.
 
-## 📋 Requisits Previs
+## Requisitos previos
 
-1. **Compte de Vercel** (gratuït): [https://vercel.com/signup](https://vercel.com/signup)
-2. **Base de dades PostgreSQL**: Necessitaràs una base de dades PostgreSQL per producció (veure opcions a sota)
-3. **Repositori GitHub**: El projecte ja està a `git@github.com:MASTER-AI-XRB/XARXANGLESOLA.git`
+1. **Cuenta de Vercel** (gratuita): [https://vercel.com/signup](https://vercel.com/signup)
+2. **Base de datos PostgreSQL**: necesaria para producción (ver opciones abajo)
+3. **Repositorio GitHub**: el proyecto está en `git@github.com:MASTER-AI-XRB/XARXANGLESOLA.git`
 
-## 🗄️ Base de Dades PostgreSQL
+## Base de datos PostgreSQL
 
-Vercel no proporciona bases de dades. Hauràs de configurar una externa. Opcions gratuïtes:
+Vercel no proporciona bases de datos. Hay que configurar una externa. Opciones gratuitas:
 
-### Opció 1: Neon (Recomanat) - Gratuït
+### Opción 1: Neon (recomendado) — gratuito
 - URL: [https://neon.tech](https://neon.tech)
-- PostgreSQL gestionat
-- Pla gratuït: 512 MB d'espai
+- PostgreSQL gestionado
+- Plan gratuito: 512 MB de espacio
 
-### Opció 2: Supabase - Gratuït
+### Opción 2: Supabase — gratuito
 - URL: [https://supabase.com](https://supabase.com)
-- PostgreSQL + funcionalitats extra
+- PostgreSQL + funcionalidades extra
 
-### Opció 3: Railway - Gratuït (limitats)
+### Opción 3: Railway — gratuito (limitado)
 - URL: [https://railway.app](https://railway.app)
-- $5 de crèdit gratuït al mes
+- 5 $ de crédito gratis al mes
 
-## 🚀 Pas 1: Preparar el Schema de Prisma
+## Paso 1: Preparar el schema de Prisma
 
-Abans de desplegar, necessites configurar Prisma per PostgreSQL:
+Antes de desplegar, configura Prisma para PostgreSQL:
 
-1. **Actualitza `prisma/schema.prisma`**:
+1. **Actualiza `prisma/schema.prisma`**:
 
 ```prisma
 datasource db {
@@ -38,168 +38,165 @@ datasource db {
 }
 ```
 
-⚠️ **Nota**: Després del deploy, pots mantenir SQLite per desenvolupament local si vols.
+**Nota**: Después del deploy, puedes mantener SQLite para desarrollo local si quieres.
 
-## 🔧 Pas 2: Desplegar a Vercel
+## Paso 2: Desplegar en Vercel
 
-### Mètode 1: Mitjançant el Dashboard de Vercel (Recomanat)
+### Método 1: Dashboard de Vercel (recomendado)
 
-1. **Accedeix a Vercel**:
-   - Ves a [https://vercel.com](https://vercel.com)
-   - Inicia sessió amb GitHub
+1. **Accede a Vercel**:
+   - Ve a [https://vercel.com](https://vercel.com)
+   - Inicia sesión con GitHub
 
-2. **Importa el Projecte**:
-   - Clic a "Add New..." → "Project"
-   - Selecciona el repositori `MASTER-AI-XRB/XARXANGLESOLA`
-   - Vercel detectarà automàticament Next.js
+2. **Importa el proyecto**:
+   - Clic en "Add New..." → "Project"
+   - Selecciona el repositorio `MASTER-AI-XRB/XARXANGLESOLA`
+   - Vercel detectará Next.js automáticamente
 
-3. **Configuració del Projecte**:
-   - **Framework Preset**: Next.js (detectat automàticament)
-   - **Root Directory**: `./` (deixa'l buit)
-   - **Build Command**: `npm run build` (per defecte)
-   - **Output Directory**: `.next` (per defecte)
-   - **Install Command**: `npm install` (per defecte)
+3. **Configuración del proyecto**:
+   - **Framework Preset**: Next.js (detectado automáticamente)
+   - **Root Directory**: `./` (déjalo vacío)
+   - **Build Command**: `pnpm build` (o el valor por defecto)
+   - **Output Directory**: `.next` (por defecto)
+   - **Install Command**: `pnpm install` (o el valor por defecto)
 
-### Mètode 2: Mitjançant Vercel CLI
+### Método 2: Vercel CLI
 
 ```bash
-# Instal·la Vercel CLI
-npm i -g vercel
-
-# Des del directori del projecte
+pnpm add -g vercel
 vercel
-
-# Segueix les instruccions de la CLI
 ```
 
-## 🔑 Pas 3: Configurar Variables d'Entorn
+Sigue las instrucciones de la CLI.
 
-A Vercel Dashboard → Project → Settings → Environment Variables, afegeix:
+## Paso 3: Configurar variables de entorno
 
-### Variables Obligatòries:
+En Vercel Dashboard → Project → Settings → Environment Variables, añade:
+
+### Variables obligatorias:
 
 ```
-DATABASE_URL=postgresql://usuari:contrasenya@host:5432/nom_base_dades?schema=public
+DATABASE_URL=postgresql://usuario:contraseña@host:5432/nombre_base_datos?schema=public
 NODE_ENV=production
 ```
 
-### NextAuth i Google OAuth (obligatòries si fas servir "Continua amb Google"):
+### NextAuth y Google OAuth (obligatorias si usas «Continuar con Google»):
 
 ```
 NEXTAUTH_URL=https://xarxanglesola.vercel.app
-AUTH_SECRET=<una cadena llarga i aleatòria, p.ex. openssl rand -base64 32>
-GOOGLE_CLIENT_ID=<el teu Client ID de Google Cloud>
-GOOGLE_CLIENT_SECRET=<el teu Client Secret de Google Cloud>
+AUTH_SECRET=<una cadena larga y aleatoria, p.ej. openssl rand -base64 32>
+GOOGLE_CLIENT_ID=<tu Client ID de Google Cloud>
+GOOGLE_CLIENT_SECRET=<tu Client Secret de Google Cloud>
 ```
 
-⚠️ **Important**:
-- `NEXTAUTH_URL`: Ha de ser **exactament** la URL de producció, **sense** barra final (e.g. `https://xarxanglesola.vercel.app`). Si falta o és incorrecta, veuràs `error=OAuthSignin` en clicar "Continua amb Google".
-- `AUTH_SECRET`: La mateixa que fas servir en local, o genera una de nova per producció.
-- **Google Cloud Console**: A [Credentials](https://console.cloud.google.com/apis/credentials) → el teu client OAuth → "Authorized redirect URIs" ha d’incloure:
+**Importante**:
+- `NEXTAUTH_URL`: debe ser **exactamente** la URL de producción, **sin** barra final (p. ej. `https://xarxanglesola.vercel.app`). Si falta o es incorrecta, verás `error=OAuthSignin` al pulsar «Continuar con Google».
+- `AUTH_SECRET`: la misma que usas en local, o genera una nueva para producción.
+- **Google Cloud Console**: en [Credentials](https://console.cloud.google.com/apis/credentials) → tu cliente OAuth → "Authorized redirect URIs" debe incluir:
   ```
   https://xarxanglesola.vercel.app/api/auth/callback/google
   ```
-  (Afegeix també `http://localhost:3000/api/auth/callback/google` si tens dev en local.)
+  (Añade también `http://localhost:3000/api/auth/callback/google` si tienes dev en local.)
 
-### Variables Opcionals (recomanades):
+### Variables opcionales (recomendadas):
 
 ```
-NEXT_PUBLIC_APP_URL=https://tu-projecte.vercel.app
-NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-projecte.vercel.app
-NEXT_PUBLIC_SOCKET_URL=https://tu-projecte.vercel.app
+NEXT_PUBLIC_APP_URL=https://tu-proyecto.vercel.app
+NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-proyecto.vercel.app
+NEXT_PUBLIC_SOCKET_URL=https://tu-proyecto.vercel.app
 ```
 
-⚠️ **Important**: 
-- `DATABASE_URL`: Ha de ser la URL de la teva base de dades PostgreSQL
-- `NEXT_PUBLIC_APP_URL`: S'actualitzarà automàticament després del primer deploy
-- Per `NEXT_PUBLIC_SOCKET_URL`, veure secció Socket.io més avall
+**Importante**:
+- `DATABASE_URL`: URL de tu base de datos PostgreSQL
+- `NEXT_PUBLIC_APP_URL`: se actualiza tras el primer deploy
+- Para `NEXT_PUBLIC_SOCKET_URL`, ver la sección Socket.IO más abajo
 
-### Configurar per Entorns:
+### Configurar por entornos:
 
-- **Production**: Variables per producció
-- **Preview**: Variables per previews (opcional)
-- **Development**: Variables per desenvolupament local (opcional)
+- **Production**: variables de producción
+- **Preview**: variables para previews (opcional)
+- **Development**: variables para desarrollo local (opcional)
 
-## 🗃️ Pas 4: Executar Migracions de la Base de Dades
+## Paso 4: Ejecutar migraciones de la base de datos
 
-Després del primer deploy, executa les migracions:
+Tras el primer deploy:
 
 ```bash
-# Opció 1: Executar des de local (amb DATABASE_URL configurada)
-npx prisma migrate deploy
-
-# Opció 2: Executar via Vercel CLI
-vercel env pull .env.local  # Descarregar variables d'entorn
-npx prisma migrate deploy
+pnpm exec prisma migrate deploy
 ```
 
-## 📁 Pas 5: Configurar Imatges (Important)
+O vía Vercel CLI:
 
-Les imatges es guarden a `public/uploads/`. A Vercel:
+```bash
+vercel env pull .env.local
+pnpm exec prisma migrate deploy
+```
 
-1. **Opció 1**: Utilitzar Vercel Blob Storage (requereix pla Pro o usar una alternativa)
-2. **Opció 2**: Utilitzar un servei extern (Cloudinary, AWS S3, etc.)
-3. **Opció 3**: De moment, deixar-ho funcionar (les imatges es perdran en cada redeploy)
+## Paso 5: Configurar imágenes (importante)
 
-⚠️ **Nota**: `public/uploads/` es regenera en cada deploy. Per producció, considera usar cloud storage.
+Las imágenes se guardan en `public/uploads/`. En Vercel:
 
-## 🔌 Pas 6: Socket.io (Temporal)
+1. **Opción 1**: Vercel Blob Storage
+2. **Opción 2**: servicio externo (Cloudinary, AWS S3, etc.)
+3. **Opción 3**: dejarlo así (las imágenes se perderán en cada redeploy)
 
-Socket.io amb `server.js` personalitzat **no funcionarà directament** a Vercel perquè Vercel utilitza Serverless Functions.
+**Nota**: `public/uploads/` se regenera en cada deploy. En producción, usa cloud storage (este proyecto usa Vercel Blob).
 
-### Solucions:
+## Paso 6: Socket.IO
 
-1. **Deshabilitar Socket.io temporalment**: El xat no funcionarà fins que s'adapti
-2. **Adaptar Socket.io**: Utilitzar Vercel Serverless Functions (requereix canvis al codi)
-3. **Servidor separat**: Executar Socket.io en un altre servidor (Railway, Render, etc.)
+Socket.IO con `server.js` personalizado **no funciona directamente** en Vercel (funciones serverless).
 
-Per ara, deixa `NEXT_PUBLIC_SOCKET_URL` sense configurar i el xat estarà deshabilitat.
+### Soluciones:
 
-## ✅ Pas 7: Verificar el Deploy
+1. Deshabilitar Socket.IO temporalmente: el chat no funcionará hasta adaptarlo
+2. Adaptar Socket.IO a funciones serverless (requiere cambios de código)
+3. **Servidor separado**: ejecutar Socket.IO en Railway, Render, etc. (es lo que usa este proyecto)
 
-1. Vercel farà el deploy automàticament
-2. Podràs veure l'URL del projecte (ej: `https://xarxanglesola.vercel.app`)
-3. Visita la URL i verifica que funciona
+Deja `NEXT_PUBLIC_SOCKET_URL` apuntando al servidor de Railway. Ver [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md).
 
-## 🔍 Troubleshooting
+## Paso 7: Verificar el deploy
 
-### Error `OAuthSignin` en clicar "Continua amb Google" a producció
-- **`NEXTAUTH_URL`**: Ha d’estar definida a Vercel i ser exactament `https://xarxanglesola.vercel.app` (sense barra final). És la causa més habitual.
-- **Google Cloud**: A "Authorized redirect URIs" del teu client OAuth ha d’haver-hi `https://xarxanglesola.vercel.app/api/auth/callback/google`.
-- **Variables a Vercel**: Comprova que `AUTH_SECRET`, `GOOGLE_CLIENT_ID` i `GOOGLE_CLIENT_SECRET` estan definides per l’entorn **Production**.
-- Després de canviar variables, cal fer **Redeploy** al projecte a Vercel.
+1. Vercel hará el deploy automáticamente
+2. Verás la URL del proyecto (p. ej. `https://xarxanglesola.vercel.app`)
+3. Visita la URL y comprueba que funciona
+
+## Troubleshooting
+
+### Error `OAuthSignin` al pulsar «Continuar con Google» en producción
+- **`NEXTAUTH_URL`**: debe estar definida en Vercel y ser exactamente `https://xarxanglesola.vercel.app` (sin barra final). Es la causa más habitual.
+- **Google Cloud**: en "Authorized redirect URIs" debe estar `https://xarxanglesola.vercel.app/api/auth/callback/google`.
+- **Variables en Vercel**: comprueba que `AUTH_SECRET`, `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` están definidas para el entorno **Production**.
+- Tras cambiar variables, hay que hacer **Redeploy**.
 
 ### Error: "Database connection failed"
-- Verifica que `DATABASE_URL` estigui ben configurada
-- Assegura't que la base de dades accepta connexions des d'exterior
-- Comprova que el firewall permet connexions des d'IPs de Vercel
+- Verifica que `DATABASE_URL` esté bien configurada
+- Asegúrate de que la base de datos acepta conexiones exteriores
+- Comprueba que el firewall permite conexiones desde IPs de Vercel
 
 ### Error: "Prisma Client not generated"
-- Vercel executa `postinstall` automàticament (que inclou `prisma generate`)
-- Si continua fallant, verifica `package.json` → `postinstall`
+- Vercel ejecuta `postinstall` automáticamente (incluye `prisma generate`)
+- Si sigue fallando, verifica `package.json` → `postinstall`
 
-### Les imatges no es carreguen
-- Assegura't que `public/uploads/` existeix
-- Verifica els permisos
-- Considera usar cloud storage per producció
+### Las imágenes no se cargan
+- Asegúrate de que `public/uploads/` existe (local) o de que Blob está configurado (producción)
+- Verifica permisos
+- En producción usa cloud storage
 
 ### Error de build
-- Revisa els logs de build a Vercel Dashboard
-- Verifica que totes les dependències estiguin a `package.json`
+- Revisa los logs de build en Vercel Dashboard
+- Verifica que todas las dependencias estén en `package.json`
 
-## 📝 Notes Addicionals
+## Notas adicionales
 
-- **Builds automàtics**: Cada push a `main` farà un deploy automàtic
-- **Preview deployments**: Cada pull request genera una URL de preview
-- **Custom domain**: Pots configurar un domini personalitzat a Settings → Domains
+- **Builds automáticos**: cada push a `main` hace un deploy
+- **Preview deployments**: cada pull request genera una URL de preview
+- **Custom domain**: puedes configurar un dominio en Settings → Domains
 
-## 🆘 Suport
+## Soporte
 
-Si tens problemes:
-1. Revisa els logs a Vercel Dashboard → Deployments
-2. Consulta la documentació de Vercel: [https://vercel.com/docs](https://vercel.com/docs)
-3. Revisa aquesta guia
+Si hay problemas:
+1. Revisa los logs en Vercel Dashboard → Deployments
+2. Consulta la documentación de Vercel: [https://vercel.com/docs](https://vercel.com/docs)
+3. Revisa esta guía
 
----
-
-**Següent pas**: Un cop desplegat, pots configurar un domini personalitzat i optimitzar per producció.
+**Siguiente paso**: una vez desplegado, puedes configurar un dominio personalizado y optimizar para producción.

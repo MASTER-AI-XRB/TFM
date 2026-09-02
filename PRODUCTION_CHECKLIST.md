@@ -1,140 +1,139 @@
-# Checklist de Producció - Xarxa Anglesola
+# Checklist de producción - Xarxa Anglesola
 
-Aquest document llista totes les tasques necessàries per preparar l'aplicació per a ús global en producció.
+Este documento lista las tareas necesarias para preparar la aplicación para uso global en producción.
 
-## Seguretat
+## Seguridad
 
-### ✅ Completat
-- [x] Validacions d'inputs implementades
-- [x] Sanitització de dades
-- [x] Rate limiting bàsic
-- [x] Headers de seguretat HTTP
-- [x] Validació de tipus de fitxers
-- [x] Límits de mida de fitxers
-- [x] CORS configurat
+### Completado
+- [x] Validaciones de inputs implementadas
+- [x] Sanitización de datos
+- [x] Rate limiting básico
+- [x] Headers de seguridad HTTP
+- [x] Validación de tipos de archivo
+- [x] Límites de tamaño de archivo
+- [x] CORS configurado
 
-### ⚠️ Per Implementar
-- [ ] Implementar autenticació més robusta (JWT tokens)
-- [ ] Afegir protecció CSRF
-- [ ] Implementar rate limiting amb Redis per major escala
-- [ ] Afegir logging de seguretat
-- [ ] Implementar detecció d'activitat sospitosa
+### Por implementar
+- [ ] Autenticación más robusta (JWT)
+- [ ] Protección CSRF
+- [ ] Rate limiting con Redis a mayor escala
+- [ ] Logging de seguridad
+- [ ] Detección de actividad sospechosa
 
-## Base de Dades
+## Base de datos
 
-### ✅ Completat
-- [x] Índexs afegits per millorar performance
-- [x] Schema preparat per PostgreSQL
-- [x] Relacions configurades correctament
+### Completado
+- [x] Índices añadidos para mejorar rendimiento
+- [x] Schema preparado para PostgreSQL
+- [x] Relaciones configuradas correctamente
 
-### ⚠️ Per Implementar
-- [ ] Migrar de SQLite a PostgreSQL
-- [ ] Configurar backups automàtics
-- [ ] Implementar replicació (si cal)
+### Por implementar
+- [ ] Migrar de SQLite a PostgreSQL (ya está en PostgreSQL en este repo)
+- [ ] Configurar backups automáticos
+- [ ] Implementar replicación (si hace falta)
 - [ ] Configurar connection pooling
 
 ## Infraestructura
 
-### ⚠️ Per Configurar
-- [ ] Servidor de producció configurat
-- [ ] Domini i DNS configurats
-- [ ] Certificat SSL/HTTPS instal·lat
-- [ ] CDN configurat (opcional però recomanat)
-- [ ] Load balancer (si cal escalabilitat)
-- [ ] Monitoring i alertes configurats
+### Por configurar
+- [ ] Servidor de producción configurado
+- [ ] Dominio y DNS configurados
+- [ ] Certificado SSL/HTTPS instalado
+- [ ] CDN configurado (opcional pero recomendado)
+- [ ] Load balancer (si hace falta escalabilidad)
+- [ ] Monitoring y alertas configurados
 
-## Imatges
+## Imágenes
 
-### ✅ Completat
-- [x] Validació de tipus de fitxers
-- [x] Límits de mida
-- [x] Sanitització de noms de fitxers
+### Completado
+- [x] Validación de tipos de archivo
+- [x] Límites de tamaño
+- [x] Sanitización de nombres de archivo
 
-### ⚠️ Per Implementar
-- [ ] Migrar a cloud storage (S3, Cloudinary, etc.)
-- [ ] Implementar redimensionament d'imatges
-- [ ] Afegir compressió d'imatges
-- [ ] Implementar CDN per imatges
+### Por implementar
+- [ ] Migrar a cloud storage (S3, Cloudinary, etc.) — en producción se usa Vercel Blob
+- [ ] Redimensionado de imágenes
+- [ ] Compresión de imágenes
+- [ ] CDN para imágenes
 
-## Performance
+## Rendimiento
 
-### ✅ Completat
-- [x] Índexs de base de dades
-- [x] Límits de consultes (take: 50 per missatges)
+### Completado
+- [x] Índices de base de datos
+- [x] Límites de consultas (take: 50 para mensajes)
 
-### ⚠️ Per Implementar
-- [ ] Implementar caching (Redis)
-- [ ] Optimitzar consultes de base de dades
-- [ ] Implementar paginació per productes
-- [ ] Afegir lazy loading d'imatges
-- [ ] Optimitzar bundle size
+### Por implementar
+- [ ] Caching (Redis)
+- [ ] Optimizar consultas de base de datos
+- [ ] Paginación de productos
+- [ ] Lazy loading de imágenes
+- [ ] Optimizar bundle size
 
-## Monitoring i Logging
+## Monitoring y logging
 
-### ⚠️ Per Implementar
-- [ ] Configurar Sentry o similar per error tracking
-- [ ] Implementar logging estructurat
-- [ ] Configurar monitoring de performance (APM)
-- [ ] Configurar alertes per errors crítics
-- [ ] Dashboard de mètriques
+### Por implementar
+- [ ] Sentry o similar para error tracking
+- [ ] Logging estructurado
+- [ ] Monitoring de rendimiento (APM)
+- [ ] Alertas para errores críticos
+- [ ] Dashboard de métricas
 
-## Escalabilitat
+## Escalabilidad
 
-### ⚠️ Per Considerar
-- [ ] Implementar Redis per sessions i rate limiting
-- [ ] Configurar múltiples instàncies del servidor
-- [ ] Implementar queue system per tasques pesades
-- [ ] Optimitzar Socket.io per múltiples servidors (Redis adapter)
+### Por considerar
+- [ ] Redis para sesiones y rate limiting
+- [ ] Múltiples instancias del servidor
+- [ ] Sistema de colas para tareas pesadas
+- [ ] Optimizar Socket.IO para varios servidores (Redis adapter)
 
-## Documentació
+## Documentación
 
-### ✅ Completat
-- [x] README actualitzat
-- [x] DEPLOYMENT.md creat
-- [x] Instruccions de producció
+### Completado
+- [x] README actualizado
+- [x] DEPLOYMENT.md creado
+- [x] Instrucciones de producción
 
 ## Testing
 
-### ⚠️ Per Implementar
-- [ ] Tests unitaris
-- [ ] Tests d'integració
-- [ ] Tests E2E
-- [ ] Tests de càrrega
+### Por implementar
+- [ ] Tests unitarios (Vitest ya existe)
+- [ ] Tests de integración
+- [ ] Tests E2E (Playwright ya existe)
+- [ ] Tests de carga
 
-## Llei i Compliment
+## Ley y cumplimiento
 
-### ⚠️ Per Considerar
-- [ ] Política de privacitat
-- [ ] Termes i condicions
-- [ ] Compliment GDPR (si aplica)
-- [ ] Cookies policy
+### Por considerar
+- [ ] Política de privacidad (ya hay página `/privacy`)
+- [ ] Términos y condiciones (ya hay página `/terms`)
+- [ ] Cumplimiento RGPD (exportar / borrar cuenta)
+- [ ] Política de cookies
 
-## Recomanacions Addicionals
+## Recomendaciones adicionales
 
-1. **Backup Strategy**: Configura backups automàtics diaris de la base de dades
-2. **Disaster Recovery**: Pla de recuperació en cas de fallada
-3. **Scaling Plan**: Pla per escalar quan creixi el tràfic
-4. **Cost Optimization**: Monitoritza i optimitza costos de cloud
-5. **Documentation**: Mantenir documentació actualitzada
+1. **Backup**: backups automáticos diarios de la base de datos
+2. **Disaster recovery**: plan de recuperación ante fallos
+3. **Scaling**: plan para escalar cuando crezca el tráfico
+4. **Costes**: monitorizar y optimizar costes de cloud
+5. **Documentación**: mantenerla actualizada
 
-## Prioritat Alta (Abans de Llançar)
+## Prioridad alta (antes de lanzar)
 
 1. Migrar a PostgreSQL
 2. Configurar HTTPS/SSL
 3. Implementar backups
-4. Configurar monitoring bàsic
-5. Provar en entorn de staging
+4. Configurar monitoring básico
+5. Probar en entorno de staging
 
-## Prioritat Mitjana (Després del Llançament)
+## Prioridad media (después del lanzamiento)
 
-1. Migrar imatges a cloud storage
+1. Migrar imágenes a cloud storage
 2. Implementar caching
-3. Millorar rate limiting
-4. Afegir monitoring avançat
+3. Mejorar rate limiting
+4. Añadir monitoring avanzado
 
-## Prioritat Baixa (Millores Futures)
+## Prioridad baja (mejoras futuras)
 
-1. Implementar autenticació avançada
-2. Afegir tests automatitzats
-3. Optimitzacions avançades de performance
-
+1. Autenticación avanzada
+2. Tests automatizados
+3. Optimizaciones avanzadas de rendimiento

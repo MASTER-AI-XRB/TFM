@@ -1,76 +1,76 @@
-# Guia de Desplegament - Xarxa Anglesola
+# Guía de despliegue - Xarxa Anglesola
 
-Aquesta guia t'ajudarà a desplegar l'aplicació per a ús global en producció.
+Esta guía te ayuda a desplegar la aplicación para uso global en producción.
 
-## Requisits Previs
+## Requisitos previos
 
-- Node.js 18+ instal·lat
-- Base de dades PostgreSQL (recomanat) o MySQL
-- Domini configurat amb SSL/HTTPS
-- Servidor amb suficient memòria i CPU
+- Node.js 18+ instalado
+- Base de datos PostgreSQL (recomendado) o MySQL
+- Dominio configurado con SSL/HTTPS
+- Servidor con suficiente memoria y CPU
 
-## Pas 1: Preparar el Codi
+## Paso 1: Preparar el código
 
-### 1.1 Actualitzar Schema de Base de Dades
+### 1.1 Actualizar el schema de base de datos
 
-Per producció, canvia `prisma/schema.prisma`:
+Para producción, cambia `prisma/schema.prisma`:
 
 ```prisma
 datasource db {
-  provider = "postgresql"  // Canvia de "sqlite" a "postgresql"
+  provider = "postgresql"  // Cambia de "sqlite" a "postgresql"
   url      = env("DATABASE_URL")
 }
 ```
 
-### 1.2 Configurar Variables d'Entorn
+### 1.2 Configurar variables de entorno
 
-Crea un fitxer `.env` amb:
+Crea un archivo `.env` con:
 
 ```env
-DATABASE_URL="postgresql://usuari:contrasenya@host:5432/nom_base_dades?schema=public"
+DATABASE_URL="postgresql://usuario:contraseña@host:5432/nombre_base_datos?schema=public"
 NODE_ENV=production
 PORT=3000
 SOCKET_PORT=3001
-NEXT_PUBLIC_APP_URL=https://tudomini.com
-NEXT_PUBLIC_ALLOWED_ORIGINS=https://tudomini.com,https://www.tudomini.com
+NEXT_PUBLIC_APP_URL=https://tudominio.com
+NEXT_PUBLIC_ALLOWED_ORIGINS=https://tudominio.com,https://www.tudominio.com
 ```
 
-## Pas 2: Configurar Base de Dades
+## Paso 2: Configurar la base de datos
 
-### 2.1 Crear Base de Dades PostgreSQL
+### 2.1 Crear la base de datos PostgreSQL
 
 ```sql
 CREATE DATABASE xarxanglesola;
-CREATE USER xarxanglesola_user WITH PASSWORD 'contrasenya_segura';
+CREATE USER xarxanglesola_user WITH PASSWORD 'contraseña_segura';
 GRANT ALL PRIVILEGES ON DATABASE xarxanglesola TO xarxanglesola_user;
 ```
 
-### 2.2 Executar Migracions
+### 2.2 Ejecutar migraciones
 
 ```bash
-npx prisma migrate deploy
-npx prisma generate
+pnpm exec prisma migrate deploy
+pnpm exec prisma generate
 ```
 
-## Pas 3: Construir l'Aplicació
+## Paso 3: Construir la aplicación
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
-## Pas 4: Configurar Servidor
+## Paso 4: Configurar el servidor
 
-### Opció A: Usant PM2 (Recomanat)
+### Opción A: Usando PM2 (recomendado)
 
 ```bash
-npm install -g pm2
+pnpm add -g pm2
 pm2 start server.js --name xarxanglesola
 pm2 save
 pm2 startup
 ```
 
-### Opció B: Usant systemd
+### Opción B: Usando systemd
 
 Crea `/etc/systemd/system/xarxanglesola.service`:
 
@@ -82,7 +82,7 @@ After=network.target
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/ruta/al/projecte
+WorkingDirectory=/ruta/al/proyecto
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node server.js
 Restart=always
@@ -96,23 +96,23 @@ sudo systemctl enable xarxanglesola
 sudo systemctl start xarxanglesola
 ```
 
-## Pas 5: Configurar Nginx (Recomanat)
+## Paso 5: Configurar Nginx (recomendado)
 
 Crea `/etc/nginx/sites-available/xarxanglesola`:
 
 ```nginx
 server {
     listen 80;
-    server_name tudomini.com www.tudomini.com;
+    server_name tudominio.com www.tudominio.com;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name tudomini.com www.tudomini.com;
+    server_name tudominio.com www.tudominio.com;
 
-    ssl_certificate /ruta/al/certificat.crt;
-    ssl_certificate_key /ruta/al/clau.key;
+    ssl_certificate /ruta/al/certificado.crt;
+    ssl_certificate_key /ruta/al/clave.key;
 
     location / {
         proxy_pass http://localhost:3000;
@@ -133,70 +133,69 @@ server {
 }
 ```
 
-## Pas 6: Configurar Backups
+## Paso 6: Configurar backups
 
-### Backup de Base de Dades
+### Backup de base de datos
 
 Crea un script de backup (`backup-db.sh`):
 
 ```bash
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-pg_dump -U usuari nom_base_dades > /ruta/backups/backup_$DATE.sql
-# Mantenir només últims 7 dies
+pg_dump -U usuario nombre_base_datos > /ruta/backups/backup_$DATE.sql
+# Mantener solo los últimos 7 días
 find /ruta/backups -name "backup_*.sql" -mtime +7 -delete
 ```
 
-Afegeix a crontab:
+Añade a crontab:
 ```bash
 0 2 * * * /ruta/al/backup-db.sh
 ```
 
-## Pas 7: Monitoring
+## Paso 7: Monitoring
 
-### Opcions Recomanades
+### Opciones recomendadas
 
-- **Sentry**: Per tracking d'errors
-- **Uptime Robot**: Per monitoring de disponibilitat
-- **New Relic / Datadog**: Per monitoring de performance
+- **Sentry**: seguimiento de errores
+- **Uptime Robot**: disponibilidad
+- **New Relic / Datadog**: rendimiento
 
-## Pas 8: Optimitzacions
+## Paso 8: Optimizaciones
 
-### 8.1 Imatges
+### 8.1 Imágenes
 
-Considera migrar a un servei de cloud storage:
+Considera migrar a un servicio de cloud storage:
 - AWS S3
 - Cloudinary
 - ImageKit
 
 ### 8.2 CDN
 
-Configura un CDN per servir assets estàtics:
+Configura un CDN para servir assets estáticos:
 - Cloudflare
 - AWS CloudFront
 - Vercel Edge Network
 
-### 8.3 Rate Limiting Avançat
+### 8.3 Rate limiting avanzado
 
-Per major escala, implementa rate limiting amb Redis:
+Para mayor escala, implementa rate limiting con Redis:
 ```bash
-npm install ioredis
+pnpm add ioredis
 ```
 
-## Checklist de Producció
+## Checklist de producción
 
-- [ ] Base de dades PostgreSQL configurada
-- [ ] Variables d'entorn configurades
-- [ ] HTTPS/SSL configurat
-- [ ] Backups automàtics configurats
-- [ ] Monitoring configurat
-- [ ] Rate limiting activat
-- [ ] Logs configurats
-- [ ] Firewall configurat
-- [ ] Domini configurat correctament
-- [ ] Tests realitzats en entorn de staging
+- [ ] Base de datos PostgreSQL configurada
+- [ ] Variables de entorno configuradas
+- [ ] HTTPS/SSL configurado
+- [ ] Backups automáticos configurados
+- [ ] Monitoring configurado
+- [ ] Rate limiting activado
+- [ ] Logs configurados
+- [ ] Firewall configurado
+- [ ] Dominio configurado correctamente
+- [ ] Tests realizados en entorno de staging
 
-## Suport
+## Soporte
 
-Per problemes o preguntes, consulta la documentació o obre un issue al repositori.
-
+Para problemas o preguntas, consulta la documentación o abre un issue en el repositorio.

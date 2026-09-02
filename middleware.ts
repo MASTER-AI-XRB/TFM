@@ -22,6 +22,12 @@ const RATE_LIMITS = [
     maxRequests: 5,
     keySuffix: 'forgot',
   },
+  {
+    match: /^\/api\/auth\/reset-password$/,
+    windowMs: 15 * 60 * 1000,
+    maxRequests: 5,
+    keySuffix: 'reset',
+  },
 ]
 
 function getRateLimitKey(request: NextRequest): string {

@@ -1,85 +1,84 @@
-# Canvis per Producció - Xarxa Anglesola
+# Cambios para producción - Xarxa Anglesola
 
-Aquest document descriu totes les millores implementades per preparar l'aplicació per a ús global.
+Este documento describe las mejoras implementadas para preparar la aplicación para uso global.
 
-## Seguretat
+## Seguridad
 
-### Validacions i Sanitització
-- ✅ Validació de nicknames (longitud, caràcters permesos)
-- ✅ Validació de noms de productes
-- ✅ Validació de descripcions
-- ✅ Validació de missatges
-- ✅ Validació de fitxers d'imatge (tipus, mida)
-- ✅ Sanitització de strings d'entrada
-- ✅ Sanitització de noms de fitxers
+### Validaciones y sanitización
+- Validación de nicknames (longitud, caracteres permitidos)
+- Validación de nombres de productos
+- Validación de descripciones
+- Validación de mensajes
+- Validación de archivos de imagen (tipo, tamaño)
+- Sanitización de strings de entrada
+- Sanitización de nombres de archivo
 
-### Proteccions
-- ✅ Rate limiting bàsic implementat (100 peticions per 15 minuts)
-- ✅ Headers de seguretat HTTP configurats
-- ✅ CORS configurat amb suport per múltiples dominis
-- ✅ Validació de contingut de missatges
-- ✅ Límits de mida de fitxers (5MB)
+### Protecciones
+- Rate limiting básico (100 peticiones por 15 minutos)
+- Headers de seguridad HTTP configurados
+- CORS configurado con soporte para varios dominios
+- Validación de contenido de mensajes
+- Límites de tamaño de archivo (5 MB)
 
-## Base de Dades
+## Base de datos
 
-### Optimitzacions
-- ✅ Índexs afegits a Product (userId, createdAt)
-- ✅ Índexs afegits a Message (userId, createdAt)
-- ✅ Índexs afegits a Favorite (productId)
-- ✅ Schema preparat per PostgreSQL
-- ✅ Scripts de migració afegits
+### Optimizaciones
+- Índices en Product (userId, createdAt)
+- Índices en Message (userId, createdAt)
+- Índices en Favorite (productId)
+- Schema preparado para PostgreSQL
+- Scripts de migración añadidos
 
-## Configuració
+## Configuración
 
-### Variables d'Entorn
-- ✅ Suport per variables d'entorn
-- ✅ Configuració flexible de ports
-- ✅ Configuració de CORS dinàmica
-- ✅ URL de Socket.io configurable
+### Variables de entorno
+- Soporte para variables de entorno
+- Configuración flexible de puertos
+- CORS dinámico
+- URL de Socket.IO configurable
 
 ### Servidor
-- ✅ Configuració de producció
-- ✅ Timeouts configurats per Socket.io
-- ✅ Transports configurats (websocket, polling)
+- Configuración de producción
+- Timeouts configurados para Socket.IO
+- Transports configurados (websocket, polling)
 
-## Documentació
+## Documentación
 
-- ✅ README actualitzat amb instruccions de producció
-- ✅ DEPLOYMENT.md creat amb guia completa
-- ✅ PRODUCTION_CHECKLIST.md creat
-- ✅ Schema de producció (PostgreSQL) creat
+- README actualizado con instrucciones de producción
+- DEPLOYMENT.md con guía completa
+- PRODUCTION_CHECKLIST.md
+- Schema de producción (PostgreSQL)
 
-## Gestió d'Errors
+## Gestión de errores
 
-- ✅ Classe AppError per errors personalitzats
-- ✅ Funció handleError centralitzada
-- ✅ Errors no revelen detalls sensibles en producció
+- Clase AppError para errores personalizados
+- Función handleError centralizada
+- En producción los errores no revelan detalles sensibles
 
-## Funcionalitats de Producció
+## Funcionalidades de producción
 
-### Scripts NPM
-- ✅ `npm run db:migrate` - Executar migracions
-- ✅ `npm run db:generate` - Generar client Prisma
-- ✅ `npm run postinstall` - Generar Prisma automàticament
+### Scripts
+- `pnpm db:migrate` — ejecutar migraciones
+- `pnpm db:generate` — generar cliente Prisma
+- `postinstall` — generar Prisma automáticamente
 
-### Millores de Performance
-- ✅ Índexs de base de dades per consultes ràpides
-- ✅ Límits de consultes (take: 50 per missatges)
-- ✅ Validacions al client per reduir peticions innecessàries
+### Rendimiento
+- Índices de base de datos para consultas rápidas
+- Límites de consultas (take: 50 para mensajes)
+- Validaciones en el cliente para reducir peticiones innecesarias
 
-## Pròxims Passos Recomanats
+## Próximos pasos recomendados
 
-1. **Migrar a PostgreSQL**: Canvia el datasource a `prisma/schema.prisma`
-2. **Configurar HTTPS**: Instal·la certificat SSL
-3. **Backups**: Configura backups automàtics
-4. **Monitoring**: Afegeix Sentry o similar
-5. **Cloud Storage**: Migra imatges a S3/Cloudinary
-6. **Redis**: Implementa rate limiting amb Redis per major escala
+1. **PostgreSQL**: el schema ya usa PostgreSQL
+2. **HTTPS**: certificado SSL
+3. **Backups**: automáticos
+4. **Monitoring**: Sentry o similar
+5. **Cloud storage**: imágenes en Blob (ya en producción)
+6. **Redis**: rate limiting a mayor escala
 
-## Notes Importants
+## Notas importantes
 
-- L'aplicació està preparada per producció però **cal configurar PostgreSQL** abans de desplegar
-- Les imatges es guarden localment; considera migrar a cloud storage
-- El rate limiting és bàsic; per major escala, usa Redis
-- Revisa `PRODUCTION_CHECKLIST.md` per veure totes les tasques pendents
-
+- La aplicación está preparada para producción; hay que configurar PostgreSQL antes de desplegar
+- En local las imágenes pueden guardarse en disco; en producción se usa Vercel Blob
+- El rate limiting es básico; a mayor escala, usa Redis
+- Revisa `PRODUCTION_CHECKLIST.md` para las tareas pendientes

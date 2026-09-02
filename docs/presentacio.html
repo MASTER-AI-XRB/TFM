@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Xarxa Anglesola — Presentación TFM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #f4f7fb;
+      --muted: #9bb3c9;
+      --paper: #07141f;
+      --panel: #0d2233;
+      --line: rgba(56, 189, 248, 0.28);
+      --sky: #38bdf8;
+      --sky-deep: #0284c7;
+      --gold: #f0c14b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Source Sans 3", system-ui, sans-serif;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    .deck {
+      position: relative;
+      height: 100%;
+      isolation: isolate;
+    }
+
+    .bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(1200px 600px at 12% -10%, rgba(2, 132, 199, 0.35), transparent 55%),
+        radial-gradient(900px 500px at 100% 110%, rgba(56, 189, 248, 0.12), transparent 50%),
+        var(--paper);
+    }
+
+    .bg svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.45;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: none;
+      padding: clamp(1.5rem, 5vw, 4.5rem);
+      align-items: center;
+    }
+
+    .slide.is-on { display: flex; }
+
+    .slide-inner {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+    }
+
+    .kicker {
+      color: var(--sky);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 0.85rem;
+    }
+
+    h1, h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    h1 { font-size: clamp(2.4rem, 7vw, 5.2rem); }
+    h2 { font-size: clamp(1.8rem, 4.4vw, 3.1rem); margin-bottom: 1.1rem; }
+
+    .lede {
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      color: var(--muted);
+      max-width: 42rem;
+      line-height: 1.5;
+    }
+
+    .meta {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.4rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: 1px solid var(--line);
+      background: rgba(13, 34, 51, 0.7);
+      border-radius: 999px;
+      padding: 0.35rem 0.8rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+    .card {
+      background: rgba(13, 34, 51, 0.78);
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      padding: 1.1rem 1.2rem;
+    }
+
+    .card h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .card p, li {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    ul { padding-left: 1.1rem; }
+    li + li { margin-top: 0.35rem; }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.55rem;
+      margin-top: 1.4rem;
+    }
+
+    .step {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 0.85rem;
+      padding: 0.7rem 0.95rem;
+      font-weight: 700;
+    }
+
+    .arrow { color: var(--sky); font-size: 1.3rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1.02rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.5rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th { color: var(--sky); font-weight: 700; font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    a { color: var(--sky); }
+
+    .big-link {
+      display: inline-block;
+      margin-top: 1.4rem;
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .chrome {
+      position: fixed;
+      z-index: 3;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.7rem 1rem 0.9rem;
+      background: linear-gradient(transparent, rgba(7, 20, 31, 0.92));
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      background: rgba(56, 189, 248, 0.15);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      background: var(--sky);
+      width: 0%;
+    }
+
+    .nav button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .nav button:focus-visible {
+      outline: 2px solid var(--sky);
+      outline-offset: 2px;
+    }
+
+    .cover-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      object-fit: cover;
+      border: 2px solid var(--sky);
+      margin-bottom: 1.2rem;
+    }
+
+    @media (max-width: 720px) {
+      .slide { align-items: flex-start; padding-top: 2rem; }
+      h1 { font-size: 2.2rem; }
+    }
+
+    @media print {
+      body { overflow: visible; background: #fff; color: #111; }
+      .chrome, .bg { display: none !important; }
+      .slide {
+        position: relative;
+        display: flex !important;
+        min-height: 100vh;
+        page-break-after: always;
+        color: #111;
+      }
+      .lede, .card p, li, .meta, td { color: #333; }
+      .card { background: #f4f7fb; border-color: #cfe8f6; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+    <div class="bg" aria-hidden="true">
+      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+        <g fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.55">
+          <path d="M120 140 L310 220 L490 120 L720 210 L980 150" />
+          <path d="M180 420 L360 330 L560 410 L790 300 L1040 380" />
+          <path d="M90 620 L300 540 L520 640 L770 520 L1010 610" />
+          <path d="M310 220 L360 330 L300 540" />
+          <path d="M490 120 L560 410 L520 640" />
+          <path d="M720 210 L790 300 L770 520" />
+        </g>
+        <g fill="#38bdf8">
+          <circle cx="120" cy="140" r="6" /><circle cx="310" cy="220" r="7" />
+          <circle cx="490" cy="120" r="6" /><circle cx="720" cy="210" r="8" />
+          <circle cx="980" cy="150" r="6" /><circle cx="180" cy="420" r="5" />
+          <circle cx="360" cy="330" r="7" /><circle cx="560" cy="410" r="8" />
+          <circle cx="790" cy="300" r="6" /><circle cx="1040" cy="380" r="5" />
+          <circle cx="90" cy="620" r="5" /><circle cx="300" cy="540" r="6" />
+          <circle cx="520" cy="640" r="7" /><circle cx="770" cy="520" r="6" />
+          <circle cx="1010" cy="610" r="5" />
+        </g>
+      </svg>
+    </div>
+
+    <section class="slide is-on" data-slide>
+      <div class="slide-inner">
+        <img class="cover-logo" src="https://xarxanglesola.vercel.app/xarxa_logo.jpg" alt="Logo Xarxa Anglesola" />
+        <p class="kicker">Trabajo de Fin de Máster</p>
+        <h1>Xarxa Anglesola</h1>
+        <p class="lede" style="margin-top:1rem">Una red vecinal para prestar lo que ya tenemos: catálogo, reservas y chat en tiempo real. Aplicación real, desplegada y en uso.</p>
+        <div class="meta">
+          <span class="chip">Web app</span>
+          <span class="chip">Next.js · PostgreSQL · Socket.IO</span>
+          <span class="chip">Vercel + Railway</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">El problema</p>
+        <h2>El barrio ya comparte. Falta la infraestructura.</h2>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>Hoy</h3>
+            <p>El préstamo vecinal vive en grupos de WhatsApp, notas de portería y memoria. Los objetos se pierden de vista; no hay estado ni histórico.</p>
+          </article>
+          <article class="card">
+            <h3>Lo que hace falta</h3>
+            <p>Un lugar común donde publicar, reservar, hablar y saber si aquello está libre, reservado o en préstamo — en el móvil y en el escritorio.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">La solución</p>
+        <h2>Una app de barrio, no un marketplace.</h2>
+        <p class="lede">Sin pagos ni anuncios. El valor es la confianza entre vecinos y un ciclo de préstamo claro.</p>
+        <div class="flow">
+          <span class="step">Publicar</span><span class="arrow">→</span>
+          <span class="step">Reservar</span><span class="arrow">→</span>
+          <span class="step">Chat privado</span><span class="arrow">→</span>
+          <span class="step">Préstamo</span><span class="arrow">→</span>
+          <span class="step">Devolución</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Funcionalidades</p>
+        <h2>Lo que el usuario puede hacer</h2>
+        <div class="grid grid-3">
+          <article class="card"><h3>Cuenta</h3><p>Nickname + contraseña o Google. Recuperar clave. Completar perfil OAuth.</p></article>
+          <article class="card"><h3>Catálogo</h3><p>Fotos, filtros, cuadrícula o lista, estado visible (reservado / en préstamo).</p></article>
+          <article class="card"><h3>Favoritos</h3><p>Guardar productos y avisar al propietario.</p></article>
+          <article class="card"><h3>Chat</h3><p>Sala general y DM ligado a un producto, persistido en la base de datos.</p></article>
+          <article class="card"><h3>Alertas</h3><p>Campana in-app y Web Push, con preferencias por tipo y palabras clave.</p></article>
+          <article class="card"><h3>Datos</h3><p>Exportar o borrar la cuenta (RGPD), cookies, términos y privacidad.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Arquitectura</p>
+        <h2>Web en Vercel, tiempo real en Railway.</h2>
+        <table>
+          <thead><tr><th>Pieza</th><th>Dónde corre</th><th>Rol</th></tr></thead>
+          <tbody>
+            <tr><td>Next.js (App Router)</td><td>Vercel</td><td>UI + API routes</td></tr>
+            <tr><td>PostgreSQL + Prisma</td><td>Neon (o equivalente)</td><td>Usuarios, productos, mensajes</td></tr>
+            <tr><td>Socket.IO</td><td>Railway</td><td>Chat y broadcast de estado</td></tr>
+            <tr><td>Vercel Blob</td><td>Vercel</td><td>Imágenes de producto</td></tr>
+            <tr><td>Web Push (VAPID)</td><td>Railway + navegador</td><td>Alertas con la app cerrada</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Stack</p>
+        <h2>Tecnologías del máster, aplicadas.</h2>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>Frontend</h3>
+            <p>React 18, TypeScript, Tailwind, next-intl (ca / es / en), PWA, tema claro/oscuro, onboarding.</p>
+          </article>
+          <article class="card">
+            <h3>Backend</h3>
+            <p>Route Handlers, Prisma, sesiones HMAC + NextAuth (Google), validación de entrada, headers de seguridad.</p>
+          </article>
+          <article class="card">
+            <h3>Calidad</h3>
+            <p>Vitest (unitario) y Playwright (e2e) sobre auth, productos, favoritos, reservas y reset de contraseña.</p>
+          </article>
+          <article class="card">
+            <h3>Ops</h3>
+            <p>Vercel + Railway, variables de entorno documentadas, Blob para archivos, PostgreSQL en producción.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Tiempo real</p>
+        <h2>El chat no es un añadido: es el puente del préstamo.</h2>
+        <ul>
+          <li>La reserva abre (o enlaza) una conversación privada con el propietario.</li>
+          <li>Los mensajes se guardan en PostgreSQL y se reemiten por Socket.IO.</li>
+          <li>Cambios de estado del producto (reservado / préstamo) llegan al resto de clientes sin recargar.</li>
+          <li>Si el navegador no está abierto, Web Push lleva el aviso al dispositivo.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Confianza</p>
+        <h2>Seguridad y datos personales.</h2>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>Auth y API</h3>
+            <p>Cookies de sesión firmadas, OAuth Google, contraseñas con bcrypt, validación de uploads, CSP y HSTS en producción.</p>
+          </article>
+          <article class="card">
+            <h3>RGPD</h3>
+            <p>Banner de cookies, páginas legales, exportación de datos y eliminación de cuenta desde Configuración.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Demo</p>
+        <h2>Ya se puede usar.</h2>
+        <p class="lede">No es un prototipo cerrado en el portátil: la app está publicada y el código versionado.</p>
+        <a class="big-link" href="https://xarxanglesola.vercel.app">xarxanglesola.vercel.app</a>
+        <p class="meta">
+          <span>Código: github.com/MASTER-AI-XRB/XARXANGLESOLA</span>
+        </p>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Criterio del TFM</p>
+        <h2>Original, útil y puesto a prueba.</h2>
+        <ul>
+          <li><strong>Real:</strong> flujo completo de usuario, no solo pantallas.</li>
+          <li><strong>Diferenciador:</strong> préstamo vecinal con estado + chat, no un e-commerce genérico.</li>
+          <li><strong>Conocimientos del máster:</strong> full-stack, tiempo real, auth, despliegue, tests, i18n, RGPD.</li>
+          <li><strong>Valor personal:</strong> una herramienta para un barrio concreto, no un CRUD de ejemplo.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide" data-slide>
+      <div class="slide-inner">
+        <p class="kicker">Cierre</p>
+        <h2>La red es la gente. El software solo la ordena.</h2>
+        <p class="lede">Gracias. Preguntas.</p>
+        <div class="meta">
+          <span class="chip">README.md</span>
+          <span class="chip">docs/presentacio.html</span>
+          <span class="chip">xarxanglesola.vercel.app</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="chrome">
+    <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+    <span id="counter">1 / 1</span>
+    <div class="nav">
+      <button type="button" id="prev" aria-label="Diapositiva anterior">Anterior</button>
+      <button type="button" id="next" aria-label="Diapositiva siguiente">Siguiente</button>
+    </div>
+    <span>Flechas · Espacio · F pantalla completa</span>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll("[data-slide]")];
+    const counter = document.getElementById("counter");
+    const bar = document.getElementById("bar");
+    let i = 0;
+
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, idx) => s.classList.toggle("is-on", idx === i));
+      counter.textContent = (i + 1) + " / " + slides.length;
+      bar.style.width = ((i + 1) / slides.length * 100) + "%";
+    }
+
+    document.getElementById("prev").addEventListener("click", () => show(i - 1));
+    document.getElementById("next").addEventListener("click", () => show(i + 1));
+
+    document.addEventListener("keydown", (e) => {
+      if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(e.key)) {
+        e.preventDefault();
+        show(i + 1);
+      }
+      if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) {
+        e.preventDefault();
+        show(i - 1);
+      }
+      if (e.key === "Home") show(0);
+      if (e.key === "End") show(slides.length - 1);
+      if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        else document.exitFullscreen();
+      }
+    });
+
+    let touchX = null;
+    document.addEventListener("touchstart", (e) => { touchX = e.changedTouches[0].screenX; }, { passive: true });
+    document.addEventListener("touchend", (e) => {
+      if (touchX == null) return;
+      const dx = e.changedTouches[0].screenX - touchX;
+      if (Math.abs(dx) > 50) show(i + (dx < 0 ? 1 : -1));
+      touchX = null;
+    }, { passive: true });
+
+    show(0);
+  </script>
+</body>
+</html>

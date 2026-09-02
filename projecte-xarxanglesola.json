@@ -1,10 +1,11 @@
 {
-  "name": "Xarxa Anglesola - Intercanvi de Productes",
-  "description": "Aplicació web per a intercanviar productes amb sistema de xat en temps real. Inclou: autenticació simple amb nickname, xat general i xats privats entre usuaris, publicació de productes amb nom, fotos (màxim 4) i descripció opcional, visualització de productes. Stack: Next.js 14, TypeScript, Prisma, SQLite/PostgreSQL, Socket.io, Tailwind CSS. Preparada per producció amb PostgreSQL, variables d'entorn i recomanacions de seguretat (validacions, rate limiting, headers). Desenvolupament futur: valoracions, categories, notificacions, perfil d'usuari, historial d'intercanvis.",
+  "name": "Xarxa Anglesola - Intercambio de Productos",
+  "description": "Aplicación web de préstamo e intercambio de productos entre vecinos, con catálogo, reservas, chat en tiempo real, Google OAuth, notificaciones push y derechos RGPD. Stack: Next.js 14, TypeScript, Prisma, PostgreSQL, Socket.IO, Tailwind. Desplegada en Vercel + Railway. TFM.",
   "status": "actiu",
   "links": [
-    { "title": "Pàgina web", "url": "https://xarxanglesola.vercel.app/" },
-    { "title": "Repositori", "url": "https://github.com/MASTER-AI-XRB/XARXANGLESOLA" }
+    { "title": "Página web", "url": "https://xarxanglesola.vercel.app/" },
+    { "title": "Repositorio", "url": "https://github.com/MASTER-AI-XRB/XARXANGLESOLA" },
+    { "title": "Presentación TFM", "url": "docs/presentacio.html" }
   ],
-  "tags": ["nextjs", "typescript", "prisma", "socket.io", "tailwind", "intercanvi-productes", "xat-temps-real"]
+  "tags": ["nextjs", "typescript", "prisma", "socket.io", "tailwind", "intercambio-productos", "chat-tiempo-real"]
 }

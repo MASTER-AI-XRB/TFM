@@ -1,75 +1,60 @@
-# Skills.sh – Comandes per al projecte
+# Skills.sh – Comandos para el proyecto
 
-## Impacte en el pes de l’app
+## Impacto en el peso de la app
 
-**No.** Incorporar skills de [skills.sh](https://skills.sh) **no augmenta el pes de l’aplicació** que es desplega.
+**No.** Incorporar skills de [skills.sh](https://skills.sh) **no aumenta el peso de la aplicación** que se despliega.
 
-- Les skills s’instal·len al projecte (p. ex. dins de `.cursor/` o similar) i són fitxers de configuració per a l’agent (Cursor, Claude, etc.).
-- Aquests fitxers **no** formen part del bundle de Next.js ni es despleguen a Vercel.
-- L’impacte és **només a nivell local** (i al repositori si es fan commit dels fitxers afegits).
+- Las skills se instalan en el proyecto (p. ej. dentro de `.cursor/` o similar) y son archivos de configuración para el agente (Cursor, Claude, etc.).
+- Esos archivos **no** forman parte del bundle de Next.js ni se despliegan en Vercel.
+- El impacto es **solo a nivel local** (y en el repositorio si se hace commit de los archivos añadidos).
 
 ---
 
-## Comandes útils
+## Comandos útiles
 
-Executa-les des de l’arrel del projecte. Es pot desactivar la telemetria amb `DISABLE_TELEMETRY=1` si ho prefereu.
+Ejecútalos desde la raíz del proyecto. Se puede desactivar la telemetría con `DISABLE_TELEMETRY=1` si lo prefieres.
 
-### Instal·lar una skill
+### Instalar una skill
 
 ```bash
-npx skills add <owner>/<skill-name>
+pnpm dlx skills add <owner>/<skill-name>
 ```
 
-**Quan surti la llista d’agents:** el CLI et demana per a quin agent vols la skill (Cursor, Claude Code, Windsurf, etc.). Has de **triar el que fas servir** (p. ex. Cursor): normalment es marca amb la tecla d’espai i es confirma amb Enter. Si només utilitzes Cursor, selecciona només Cursor. Un cop confirmat, la skill s’instal·la a la carpeta que toca (p. ex. `.cursor/`) i Cursor la farà servir automàticament; no cal fer res més.
+**Cuando salga la lista de agentes:** el CLI pregunta para qué agente quieres la skill (Cursor, Claude Code, Windsurf, etc.). Hay que **elegir el que usas** (p. ej. Cursor): normalmente se marca con la barra espaciadora y se confirma con Enter. Si solo usas Cursor, selecciona solo Cursor. Una vez confirmado, la skill se instala en la carpeta que toca (p. ej. `.cursor/`) y Cursor la usará automáticamente.
 
-### Llistar skills disponibles al repo oficial
+### Listar skills disponibles en el repo oficial
 
 ```bash
-npx skills add vercel-labs/agent-skills --list
+pnpm dlx skills add vercel-labs/agent-skills --list
 ```
 
-### Skills recomanades per aquest projecte (Next.js, React, Vercel)
+### Skills recomendadas para este proyecto (Next.js, React, Vercel)
 
 ```bash
-# Totes les skills del repo oficial (recomanat per tenir el màxim de suport)
-npx skills add vercel-labs/agent-skills
+pnpm dlx skills add vercel-labs/agent-skills
 
-# O només les que més interessen:
-# Bones pràctiques React/Next.js (rendiment, data fetching, bundle)
-npx skills add vercel-labs/agent-skills --skill vercel-react-best-practices
-
-# Disseny web i accessibilitat
-npx skills add vercel-labs/agent-skills --skill web-design-guidelines
-
-# Patrons de composició React (incl. React 19)
-npx skills add vercel-labs/agent-skills --skill vercel-composition-patterns
+pnpm dlx skills add vercel-labs/agent-skills --skill vercel-react-best-practices
+pnpm dlx skills add vercel-labs/agent-skills --skill web-design-guidelines
+pnpm dlx skills add vercel-labs/agent-skills --skill vercel-composition-patterns
 ```
 
-### Cercar i gestionar skills
+### Buscar y gestionar skills
 
 ```bash
-# Cercar skills per paraules clau (o interactiu)
-npx skills find [consulta]
-
-# Comprovar actualitzacions de les skills instal·lades
-npx skills check
-
-# Actualitzar totes les skills instal·lades
-npx skills update
+pnpm dlx skills find [consulta]
+pnpm dlx skills check
+pnpm dlx skills update
 ```
 
-### Opcions habituals
+### Opciones habituales
 
 ```bash
-# Instal·lar sense confirmació (-y) i, si s’ofereix, global (-g)
-npx skills add vercel-labs/agent-skills -y
-
-# Sense telemetria
-DISABLE_TELEMETRY=1 npx skills add vercel-labs/agent-skills
+pnpm dlx skills add vercel-labs/agent-skills -y
+DISABLE_TELEMETRY=1 pnpm dlx skills add vercel-labs/agent-skills
 ```
 
 ---
 
-## On es desen les skills
+## Dónde se guardan las skills
 
-Depèn de l’agent; en entorns Cursor sol anar a `.cursor/` dins del projecte. Aquestes carpetes es poden versionar amb Git per compartir les mateixes skills amb tot l’equip.
+Depende del agente; en Cursor suele ir a `.cursor/` o `.agents/` dentro del proyecto. Esas carpetas se pueden versionar con Git para compartir las mismas skills con el equipo.

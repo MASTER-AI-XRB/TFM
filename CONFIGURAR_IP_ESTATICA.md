@@ -1,64 +1,63 @@
-# Configurar IP Estàtica per a Desenvolupament
+# Configurar IP estática para desarrollo
 
-## Per què configurar una IP estàtica?
+## ¿Por qué una IP estática?
 
-Quan la IP del teu ordinador canvia (per exemple, de 192.168.1.130 a 192.168.1.131), el socket pot tenir problemes de connexió, especialment si tens l'app oberta al mòbil amb la IP antiga.
+Cuando la IP de tu ordenador cambia (por ejemplo, de 192.168.1.130 a 192.168.1.131), el socket puede tener problemas de conexión, sobre todo si tienes la app abierta en el móvil con la IP antigua.
 
-## Solució: Configurar IP Estàtica
+## Solución: configurar IP estática
 
-### Opció 1: Configurar IP Estàtica al Router (Recomanat)
+### Opción 1: IP estática en el router (recomendado)
 
-1. **Accedeix al teu router** (normalment http://192.168.1.1 o http://192.168.0.1)
-2. **Troba la secció de DHCP/Reservació d'IP** (pot estar a "Network", "LAN", "DHCP Server")
-3. **Afegeix una reserva d'IP** per al teu ordinador:
-   - MAC Address del teu ordinador (pots trobar-la amb `ipconfig /all` a Windows)
-   - IP que vols reservar (per exemple, 192.168.1.130)
-4. **Guarda els canvis** i reinicia el router si cal
+1. **Accede a tu router** (normalmente http://192.168.1.1 o http://192.168.0.1)
+2. **Encuentra la sección DHCP / reserva de IP** (puede estar en "Network", "LAN", "DHCP Server")
+3. **Añade una reserva de IP** para tu ordenador:
+   - MAC Address (puedes verla con `ipconfig /all` en Windows)
+   - IP que quieres reservar (por ejemplo, 192.168.1.130)
+4. **Guarda los cambios** y reinicia el router si hace falta
 
-### Opció 2: Configurar IP Estàtica a Windows
+### Opción 2: IP estática en Windows
 
-1. **Obre Configuració de xarxa**:
-   - Clic dret a la icona de xarxa a la barra de tasques
-   - "Obre configuració de xarxa i Internet"
-   - "Canviar opcions de l'adaptador"
+1. **Abre Configuración de red**:
+   - Clic derecho en el icono de red de la barra de tareas
+   - "Abrir configuración de red e Internet"
+   - "Cambiar opciones del adaptador"
 
-2. **Configura l'adaptador**:
-   - Clic dret a la teva connexió (Wi-Fi o Ethernet)
-   - "Propietats"
-   - Selecciona "Protocol d'Internet versió 4 (TCP/IPv4)"
-   - Clic a "Propietats"
+2. **Configura el adaptador**:
+   - Clic derecho en tu conexión (Wi-Fi o Ethernet)
+   - "Propiedades"
+   - Selecciona "Protocolo de Internet versión 4 (TCP/IPv4)"
+   - Clic en "Propiedades"
 
-3. **Configura IP estàtica**:
-   - Selecciona "Utilitzar la següent adreça IP"
-   - **Adreça IP**: 192.168.1.130 (o la que vulguis)
-   - **Màscara de subxarxa**: 255.255.255.0 (normalment)
-   - **Porta d'enllaç per defecte**: 192.168.1.1 (la IP del teu router)
-   - **Servidor DNS preferit**: 192.168.1.1 o 8.8.8.8
+3. **Configura IP estática**:
+   - Selecciona "Usar la siguiente dirección IP"
+   - **Dirección IP**: 192.168.1.130 (o la que quieras)
+   - **Máscara de subred**: 255.255.255.0 (normalmente)
+   - **Puerta de enlace predeterminada**: 192.168.1.1 (la IP de tu router)
+   - **Servidor DNS preferido**: 192.168.1.1 o 8.8.8.8
 
-4. **Aplica els canvis**
+4. **Aplica los cambios**
 
-### Com trobar la configuració actual del teu router
+### Cómo encontrar la configuración actual del router
 
-A Windows, executa a PowerShell:
+En Windows, ejecuta en PowerShell:
 ```powershell
 ipconfig /all
 ```
 
 Busca:
-- **Default Gateway**: Aquesta és la IP del teu router
-- **Subnet Mask**: Normalment 255.255.255.0
-- **IPv4 Address**: La teva IP actual
+- **Default Gateway**: IP de tu router
+- **Subnet Mask**: normalmente 255.255.255.0
+- **IPv4 Address**: tu IP actual
 
-## És segur?
+## ¿Es seguro?
 
-**Sí, és completament segur** configurar una IP estàtica a la teva xarxa local. Això només afecta la teva xarxa domèstica i no exposa res a Internet.
+**Sí.** Configurar una IP estática en tu red local solo afecta a tu red doméstica y no expone nada a Internet.
 
-## Alternativa: Millorar la detecció automàtica
+## Alternativa: detección automática
 
-Si no vols configurar una IP estàtica, el codi ja detecta automàticament la IP correcta basant-se en `window.location.hostname`. Però si la IP canvia mentre l'app està oberta, hauràs de:
+Si no quieres una IP estática, el código ya detecta la IP según `window.location.hostname`. Pero si la IP cambia mientras la app está abierta, tendrás que:
 
-1. Tancar i tornar a obrir l'app al mòbil
-2. O refrescar la pàgina
+1. Cerrar y volver a abrir la app en el móvil
+2. O refrescar la página
 
-La configuració d'IP estàtica és la solució més robusta per a desenvolupament.
-
+La IP estática es la solución más robusta para desarrollo.

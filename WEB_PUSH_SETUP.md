@@ -1,16 +1,16 @@
-# Configuració Web Push (notificacions amb l’app tancada)
+# Configuración Web Push (notificaciones con la app cerrada)
 
-Per rebre notificacions quan l’app està tancada cal configurar les claus VAPID i les variables d’entorn.
+Para recibir notificaciones cuando la app está cerrada hay que configurar las claves VAPID y las variables de entorno.
 
-## 1. Generar claus VAPID
+## 1. Generar claves VAPID
 
-A la arrel del projecte:
+En la raíz del proyecto:
 
 ```bash
-npm run generate-vapid
+pnpm generate-vapid
 ```
 
-Surt alguna cosa com:
+Sale algo como:
 
 ```
 =======================================
@@ -22,75 +22,75 @@ yyy...zzz
 =======================================
 ```
 
-## 2. Variables d’entorn
+## 2. Variables de entorno
 
-Afegeix al teu `.env` (i als env de producció: Vercel, Railway, etc.):
+Añade a tu `.env` (y a los env de producción: Vercel, Railway, etc.):
 
 ```
-VAPID_PUBLIC_KEY=<la Public Key del pas 1>
-VAPID_PRIVATE_KEY=<la Private Key del pas 1>
+VAPID_PUBLIC_KEY=<la Public Key del paso 1>
+VAPID_PRIVATE_KEY=<la Private Key del paso 1>
 ```
 
 Opcional:
 
 ```
-VAPID_MAILTO=mailto:el-teu@email.com
+VAPID_MAILTO=mailto:tu@email.com
 ```
 
-Si no poses `VAPID_MAILTO`, es fa servir `mailto:noreply@xarxanglesola.local`.
+Si no pones `VAPID_MAILTO`, se usa `mailto:noreply@xarxanglesola.local`.
 
-## 3. Base de dades
+## 3. Base de datos
 
-Després de generar les claus i configurar l’env:
+Tras generar las claves y configurar el env:
 
 ```bash
-npx prisma generate
-npx prisma db push
+pnpm exec prisma generate
+pnpm exec prisma db push
 ```
 
-(o `npx prisma migrate dev` si fas servir migracions).
+(o `pnpm exec prisma migrate dev` si usas migraciones).
 
-**Nota:** Tanca el servidor de desenvolupament abans d’executar `prisma generate` si et surt error `EPERM` (fitxer blocat).
+**Nota:** Cierra el servidor de desarrollo antes de ejecutar `prisma generate` si sale error `EPERM` (archivo bloqueado).
 
-## 4. Producció
+## 4. Producción
 
-- Configura `VAPID_PUBLIC_KEY` i `VAPID_PRIVATE_KEY` als env del teu hosting.
-- Assegura’t que l’app corre en **HTTPS** (Web Push ho exigeix; localhost és vàlid en dev).
-- `NEXT_PUBLIC_APP_URL` ha d’estar definit si vols enllaços absoluts a les notificacions (p. ex. `https://tu-domini.com`).
+- Configura `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY` en los env de tu hosting.
+- Asegúrate de que la app corre en **HTTPS** (Web Push lo exige; localhost es válido en dev).
+- `NEXT_PUBLIC_APP_URL` debe estar definido si quieres enlaces absolutos en las notificaciones (p. ej. `https://tu-dominio.com`).
 
-## Resum
+## Resumen
 
-| Què | On |
-|-----|-----|
-| Generar VAPID | `npm run generate-vapid` |
-| Afegir env | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` |
+| Qué | Dónde |
+|-----|-------|
+| Generar VAPID | `pnpm generate-vapid` |
+| Añadir env | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` |
 | DB | `prisma generate` + `prisma db push` (o migrate) |
-| HTTPS | Obligatori en producció |
+| HTTPS | Obligatorio en producción |
 
-Si no configures VAPID, les notificacions només es rebràn amb l’app oberta (via Socket), com abans.
+Si no configuras VAPID, las notificaciones solo se recibirán con la app abierta (vía Socket), como antes.
 
 ## 5. Servidor Socket (Railway)
 
-El servidor Socket.IO (Railway) és qui rep les peticions `/notify` des de Vercel i envia tant la notificació in-app (socket) com la push (navegador). Cal que a **Railway** tinguis:
+El servidor Socket.IO (Railway) es quien recibe las peticiones `/notify` desde Vercel y envía tanto la notificación in-app (socket) como la push (navegador). En **Railway** debes tener:
 
-| Variable | Descripció |
-|----------|------------|
-| `AUTH_SECRET` o `NOTIFY_SECRET` | **El mateix valor** que a Vercel. Si no coincideix, Vercel rebran 401 en cridar `/notify`. |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Les mateixes claus que a Vercel. Sense això, no s’envien notificacions push quan l’app està tancada. |
-| `DATABASE_URL` | La mateixa BD que Vercel (Neon), per llegir preferències i subscripcions push. |
-| `NEXT_PUBLIC_APP_URL` | URL pública de l’app (p. ex. `https://xarxanglesola.vercel.app`) per enllaços a les notificacions. |
+| Variable | Descripción |
+|----------|-------------|
+| `AUTH_SECRET` o `NOTIFY_SECRET` | **El mismo valor** que en Vercel. Si no coincide, Vercel recibirá 401 al llamar `/notify`. |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Las mismas claves que en Vercel. Sin esto no se envían notificaciones push con la app cerrada. |
+| `DATABASE_URL` | La misma BD que Vercel (Neon), para leer preferencias y suscripciones push. |
+| `NEXT_PUBLIC_APP_URL` | URL pública de la app (p. ej. `https://xarxanglesola.vercel.app`) para enlaces en las notificaciones. |
 
-A **Vercel** cal:
+En **Vercel** hace falta:
 
-- `NEXT_PUBLIC_SOCKET_URL`: URL del servidor Socket a Railway (p. ex. `https://xarxanglesola-production.up.railway.app`).
-- `AUTH_SECRET` (o `NOTIFY_SECRET`): el mateix valor que a Railway.
+- `NEXT_PUBLIC_SOCKET_URL`: URL del servidor Socket en Railway (p. ej. `https://xarxanglesola-production.up.railway.app`).
+- `AUTH_SECRET` (o `NOTIFY_SECRET`): el mismo valor que en Railway.
 
-## 6. Depuració
+## 6. Depuración
 
-- **Vercel (Build & Logs)**: Si surt `Notify reserva-preferits fallit` amb `status: 401`, el token no coincideix: comprova que `AUTH_SECRET` (o `NOTIFY_SECRET`) sigui idèntic a Vercel i Railway.
-- **Railway (Logs)**: Cerca `[notify]`:
-  - `Enviat via socket: <userId>` → notificació enviada per Socket (usuari amb l’app oberta).
-  - `Web Push enviat: <userId>` → notificació enviada com a push (navegador).
-  - `VAPID no configurat` → afegeix les claus VAPID a Railway.
-  - `Cap subscripció push` → l’usuari no ha activat notificacions al navegador o no s’ha desat la subscripció (ha d’entrar a Configuració i activar les notificacions).
-- **App oberta**: Si el socket no connecta (401 a `socket-token`), l’usuari no rebrà notificacions in-app; cal que el login i el token de Socket.IO siguin correctes.
+- **Vercel (Build & Logs)**: Si sale `Notify reserva-preferits fallit` con `status: 401`, el token no coincide: comprueba que `AUTH_SECRET` (o `NOTIFY_SECRET`) sea idéntico en Vercel y Railway.
+- **Railway (Logs)**: Busca `[notify]`:
+  - `Enviat via socket: <userId>` → notificación enviada por Socket (usuario con la app abierta).
+  - `Web Push enviat: <userId>` → notificación enviada como push (navegador).
+  - `VAPID no configurat` → añade las claves VAPID en Railway.
+  - `Cap subscripció push` → el usuario no ha activado notificaciones en el navegador o no se ha guardado la suscripción (debe entrar en Configuración y activarlas).
+- **App abierta**: Si el socket no conecta (401 en `socket-token`), el usuario no recibirá notificaciones in-app; el login y el token de Socket.IO deben ser correctos.

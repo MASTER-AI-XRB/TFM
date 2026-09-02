@@ -1,116 +1,116 @@
-# Format d’importació de projectes — Gestor
+# Formato de importación de proyectos — Gestor
 
-Aquest document descriu com una altra aplicació (o un agent d’IA) ha de generar el contingut per importar **un** projecte al Gestor de projectes (via la UI «Importar» o l’API `POST /api/import`).
-
----
-
-## 0. Instruccions obligatòries per a qui genera l’export
-
-**Heu de generar un sol arxiu.** No genereu diversos arxius (ni diversos formats, ni exemples alternatius en fitxers separats). Un projecte = un fitxer.
-
-- **Format òptim (recomanat):** un **únic fitxer JSON** amb extensió `.json` que contingui **un sol objecte** projecte amb tots els camps que tinguem (vegeu secció 3). Aquest format permet que el Gestor creï la fitxa amb nom, descripció, estat, dates, enllaços i etiquetes.
-- **Nom del fitxer:** podeu usar per exemple `projecte-gestor.json` o un nom descriptiu del projecte (ex.: `santistaks-gestor.json`).
-- **Contingut:** l’arxiu ha de ser vàlid JSON: un objecte amb les propietats `name`, `description` i, si n’hi ha, `status`, `startDate`, `endDate`, `links`, `tags` (sense `id`, `createdAt` ni `updatedAt`).
-
-Si per restriccions del context només es pot generar text pla o Markdown, genereu **un sol** fitxer `.md` o `.txt`: primera línia = nom del projecte, la resta = descripció (vegeu secció 4). En aquest cas el Gestor no podrà importar enllaços ni etiquetes; per a la millor fitxa possible, useu JSON.
+Este documento describe cómo otra aplicación (o un agente de IA) debe generar el contenido para importar **un** proyecto al Gestor de proyectos (vía la UI «Importar» o la API `POST /api/import`).
 
 ---
 
-## 1. Opcions d’importació (referència)
+## 0. Instrucciones obligatorias para quien genera el export
 
-El Gestor accepta tres tipus d’entrada:
+**Debéis generar un solo archivo.** No generéis varios archivos (ni varios formatos, ni ejemplos alternativos en archivos separados). Un proyecto = un archivo.
 
-| Tipus     | Camp `type`  | Descripció |
-|----------|--------------|------------|
-| JSON     | `json`       | Estructura amb camps del projecte (nom, descripció, enllaços, etc.). |
-| Markdown | `markdown`   | Text amb títol (opcionalment `# Títol`) i cos com a descripció. |
-| Text     | `text`       | Mateix tractament que Markdown: primera línia = nom, la resta = descripció. |
+- **Formato óptimo (recomendado):** un **único archivo JSON** con extensión `.json` que contenga **un solo objeto** proyecto con todos los campos que tengamos (véase sección 3). Este formato permite que el Gestor cree la ficha con nombre, descripción, estado, fechas, enlaces y etiquetas.
+- **Nombre del archivo:** podéis usar por ejemplo `proyecto-gestor.json` o un nombre descriptivo del proyecto.
+- **Contenido:** el archivo debe ser JSON válido: un objeto con las propiedades `name`, `description` y, si hay, `status`, `startDate`, `endDate`, `links`, `tags` (sin `id`, `createdAt` ni `updatedAt`).
+
+Si por restricciones de contexto solo se puede generar texto plano o Markdown, generad **un solo** archivo `.md` o `.txt`: primera línea = nombre del proyecto, el resto = descripción (véase sección 4). En ese caso el Gestor no podrá importar enlaces ni etiquetas; para la mejor ficha posible, usad JSON.
 
 ---
 
-## 2. Importació via API
+## 1. Opciones de importación (referencia)
 
-L’endpoint és:
+El Gestor acepta tres tipos de entrada:
+
+| Tipo     | Campo `type` | Descripción |
+|----------|--------------|-------------|
+| JSON     | `json`       | Estructura con campos del proyecto (nombre, descripción, enlaces, etc.). |
+| Markdown | `markdown`   | Texto con título (opcionalmente `# Título`) y cuerpo como descripción. |
+| Texto    | `text`       | Mismo tratamiento que Markdown: primera línea = nombre, el resto = descripción. |
+
+---
+
+## 2. Importación vía API
+
+El endpoint es:
 
 ```http
 POST /api/import
 Content-Type: application/json
 ```
 
-Cos de la petició:
+Cuerpo de la petición:
 
 ```json
 {
   "type": "json",
-  "content": "<contingut segons el tipus>"
+  "content": "<contenido según el tipo>"
 }
 ```
 
 - **`type`**: `"json"` | `"markdown"` | `"text"`.
-- **`content`**: 
-  - Si `type` és `"json"`: string amb JSON vàlid **o** objecte JSON (segons el que accepti el teu client).
-  - Si `type` és `"markdown"` o `"text"`: string amb el text/Markdown.
+- **`content`**:
+  - Si `type` es `"json"`: string con JSON válido **o** objeto JSON (según lo que acepte tu cliente).
+  - Si `type` es `"markdown"` o `"text"`: string con el texto/Markdown.
 
-En tots els casos, el Gestor genera ell mateix `id`, `createdAt` i `updatedAt` del projecte; no cal enviar-los.
+En todos los casos, el Gestor genera él mismo `id`, `createdAt` y `updatedAt` del proyecto; no hace falta enviarlos.
 
 ---
 
-## 3. Format JSON
+## 3. Formato JSON
 
-### 3.1 Objecte projecte (contingut del fitxer JSON)
+### 3.1 Objeto proyecto (contenido del archivo JSON)
 
-El fitxer que genereu ha de contenir **un únic objecte** amb els camps que conegueu. Els que no s’enviïn es prenen per defecte al Gestor.
+El archivo que generéis debe contener **un único objeto** con los campos que conozcáis. Los que no se envíen se toman por defecto en el Gestor.
 
 ```json
 {
-  "name": "Nom del projecte",
-  "description": "Descripció o objectius del projecte. Text llarg.",
+  "name": "Nombre del proyecto",
+  "description": "Descripción u objetivos del proyecto. Texto largo.",
   "status": "actiu",
   "startDate": "2025-01-15",
   "endDate": "2025-06-30",
   "links": [
-    { "title": "Repositori", "url": "https://github.com/usuari/repo" },
-    { "title": "Pàgina Web", "url": "https://wiki.example.com" }
+    { "title": "Repositorio", "url": "https://github.com/usuario/repo" },
+    { "title": "Página web", "url": "https://wiki.example.com" }
   ],
-  "tags": ["frontend", "prioritat-alta"]
+  "tags": ["frontend", "prioridad-alta"]
 }
 ```
 
-**Camps acceptats:**
+**Campos aceptados:**
 
-| Camp          | Tipus   | Obligatori | Descripció |
-|---------------|---------|------------|------------|
-| `name`        | string  | No         | Nom del projecte. Per defecte: «Importat». |
-| `description` | string  | No         | Descripció o notes. |
-| `status`      | string  | No         | `"actiu"`, `"pausat"` o `"acabat"`. Per defecte: `"actiu"`. |
-| `startDate`   | string  | No         | Data d’inici en format ISO (ex.: `YYYY-MM-DD`). |
-| `endDate`     | string  | No         | Data prevista de fi en format ISO. |
-| `links`       | array   | No         | Llista d’objectes `{ "title": string, "url": string }`. |
-| `tags`        | array   | No         | Llista de strings (etiquetes). |
+| Campo         | Tipo    | Obligatorio | Descripción |
+|---------------|---------|-------------|-------------|
+| `name`        | string  | No          | Nombre del proyecto. Por defecto: «Importado». |
+| `description` | string  | No          | Descripción o notas. |
+| `status`      | string  | No          | `"actiu"`, `"pausat"` o `"acabat"`. Por defecto: `"actiu"`. |
+| `startDate`   | string  | No          | Fecha de inicio en formato ISO (ej.: `YYYY-MM-DD`). |
+| `endDate`     | string  | No          | Fecha prevista de fin en formato ISO. |
+| `links`       | array   | No          | Lista de objetos `{ "title": string, "url": string }`. |
+| `tags`        | array   | No          | Lista de strings (etiquetas). |
 
-**No s’utilitzen** en la importació (el Gestor els genera): `id`, `createdAt`, `updatedAt`.
+**No se usan** en la importación (el Gestor los genera): `id`, `createdAt`, `updatedAt`.
 
-### 3.2 Un sol objecte (el que heu de generar)
+### 3.2 Un solo objeto (lo que debéis generar)
 
-Per a la importació al Gestor, **genereu un únic objecte** projecte dins d’un únic fitxer JSON. No genereu arrays amb diversos projectes ni diversos fitxers: un projecte per importar = un arxiu amb un objecte.
+Para la importación al Gestor, **generad un único objeto** proyecto dentro de un único archivo JSON. No generéis arrays con varios proyectos ni varios archivos: un proyecto a importar = un archivo con un objeto.
 
-El Gestor accepta també (per compatibilitat) un array o `{ "projects": [ ... ] }`, però en tots els casos **només s’importa el primer element**. Per tant, el format directe i òptim és un sol objecte en un sol arxiu.
+El Gestor acepta también (por compatibilidad) un array o `{ "projects": [ ... ] }`, pero en todos los casos **solo se importa el primer elemento**. Por tanto, el formato directo y óptimo es un solo objeto en un solo archivo.
 
-### 3.3 Exemple mínim (nom i descripció)
+### 3.3 Ejemplo mínimo (nombre y descripción)
 
 ```json
 {
-  "name": "El meu projecte",
-  "description": "Objectius i notes del projecte."
+  "name": "Mi proyecto",
+  "description": "Objetivos y notas del proyecto."
 }
 ```
 
-### 3.4 Exemple amb enllaços i etiquetes
+### 3.4 Ejemplo con enlaces y etiquetas
 
 ```json
 {
-  "name": "App mòbil",
-  "description": "Desenvolupament d’una app de gestió de tasques.",
+  "name": "App móvil",
+  "description": "Desarrollo de una app de gestión de tareas.",
   "status": "actiu",
   "endDate": "2025-09-01",
   "links": [
@@ -123,55 +123,55 @@ El Gestor accepta també (per compatibilitat) un array o `{ "projects": [ ... ] 
 
 ---
 
-## 4. Format Markdown / text
+## 4. Formato Markdown / texto
 
-Quan `type` és **`markdown`** o **`text`**, el Gestor interpreta el `content` així:
+Cuando `type` es **`markdown`** o **`text`**, el Gestor interpreta el `content` así:
 
-1. **Nom del projecte**: la **primera línia** del text.
-   - Si comença amb un o més `#` (per exemple `# Títol` o `## Títol`), es pren el text després dels `#` (sense espais inicials).
-   - Si no hi ha `#`, es pren tota la primera línia.
-2. **Descripció**: tot el que ve **després** de la primera línia (incloent salts de línia). Si no n’hi ha, es pot usar tot el text com a descripció.
+1. **Nombre del proyecto**: la **primera línea** del texto.
+   - Si empieza con uno o más `#` (por ejemplo `# Título` o `## Título`), se toma el texto después de los `#` (sin espacios iniciales).
+   - Si no hay `#`, se toma toda la primera línea.
+2. **Descripción**: todo lo que viene **después** de la primera línea (incluidos saltos de línea). Si no hay, se puede usar todo el texto como descripción.
 
-No es reconeixen enllaços ni etiquetes dins del Markdown; només es deriva nom + descripció. Per enllaços i etiquetes cal usar **JSON**.
+No se reconocen enlaces ni etiquetas dentro del Markdown; solo se deriva nombre + descripción. Para enlaces y etiquetas hay que usar **JSON**.
 
-### 4.1 Exemple Markdown (títol amb #)
-
-```markdown
-# Nom del projecte
-
-Aquesta és la descripció o l’objectiu del projecte.
-Puc escriure diverses línies.
-
-- Punt 1
-- Punt 2
-```
-
-Resultat a Gestor: **Nom** = «Nom del projecte», **Descripció** = el paràgraf i la llista.
-
-### 4.2 Exemple text (sense #)
-
-```
-El meu projecte
-Descripció breu en una o més línies.
-```
-
-Resultat: **Nom** = «El meu projecte», **Descripció** = «Descripció breu en una o més línies.»
-
-### 4.3 Exemple només descripció
-
-Si la primera línia es deixa buida o no es vol títol, es pot enviar només text; el nom del projecte quedarà per defecte («Importat») i tot el text serà la descripció.
+### 4.1 Ejemplo Markdown (título con #)
 
 ```markdown
+# Nombre del proyecto
 
-Aquesta és només la descripció sense títol.
+Esta es la descripción o el objetivo del proyecto.
+Puedo escribir varias líneas.
+
+- Punto 1
+- Punto 2
+```
+
+Resultado en Gestor: **Nombre** = «Nombre del proyecto», **Descripción** = el párrafo y la lista.
+
+### 4.2 Ejemplo texto (sin #)
+
+```
+Mi proyecto
+Descripción breve en una o más líneas.
+```
+
+Resultado: **Nombre** = «Mi proyecto», **Descripción** = «Descripción breve en una o más líneas.»
+
+### 4.3 Ejemplo solo descripción
+
+Si la primera línea se deja vacía o no se quiere título, se puede enviar solo texto; el nombre del proyecto quedará por defecto («Importado») y todo el texto será la descripción.
+
+```markdown
+
+Esta es solo la descripción sin título.
 ```
 
 ---
 
-## 5. Resum per a qui genera l’export
+## 5. Resumen para quien genera el export
 
-- **Genereu un sol arxiu.** No diversos arxius ni diversos formats.
-- **Format òptim:** un fitxer `.json` amb un **únic objecte** que tingui com a mínim `name` i `description`, i si n’hi ha: `status`, `startDate`, `endDate`, `links` (array d’objectes `{ "title", "url" }`), `tags` (array de strings). Dates en ISO (`YYYY-MM-DD`). Sense `id`, `createdAt` ni `updatedAt`.
-- **Alternativa (si no es pot JSON):** un sol fitxer `.md` o `.txt`: primera línia = nom, la resta = descripció (enllaços i etiquetes no s’importen).
+- **Generad un solo archivo.** No varios archivos ni varios formatos.
+- **Formato óptimo:** un archivo `.json` con un **único objeto** que tenga como mínimo `name` y `description`, y si hay: `status`, `startDate`, `endDate`, `links` (array de objetos `{ "title", "url" }`), `tags` (array de strings). Fechas en ISO (`YYYY-MM-DD`). Sin `id`, `createdAt` ni `updatedAt`.
+- **Alternativa (si no se puede JSON):** un solo archivo `.md` o `.txt`: primera línea = nombre, el resto = descripción (enlaces y etiquetas no se importan).
 
-Amb un sol arxiu en aquest format, el Gestor pot crear la fitxa del projecte de forma òptima.
+Con un solo archivo en este formato, el Gestor puede crear la ficha del proyecto de forma óptima.

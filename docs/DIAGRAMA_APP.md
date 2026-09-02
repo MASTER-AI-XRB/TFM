@@ -2,22 +2,22 @@
 
 ```mermaid
 flowchart TD
-  U["Usuari"] --> UI["Frontend Next.js (Vercel)"]
+  U["Usuario"] --> UI["Frontend Next.js (Vercel)"]
   UI -->|HTTP| API["API Routes Next.js"]
   UI -->|Socket.IO| WS["Servidor Socket.IO (server.js)"]
   API --> DB[(PostgreSQL)]
   WS --> DB
   API --> BLOB["Vercel Blob"]
-  WS --> NOTIF["Notificacions al navegador"]
+  WS --> NOTIF["Notificaciones en el navegador"]
 
   subgraph Frontend
-    UI --> P1["Pàgina Login / Registre"]
-    UI --> P2["Productes"]
-    UI --> P3["Preferits"]
-    UI --> P4["Els meus productes"]
-    UI --> P5["Detall producte"]
-    UI --> P6["Xat"]
-    UI --> P7["Preferències notificacions"]
+    UI --> P1["Página Login / Registro"]
+    UI --> P2["Productos"]
+    UI --> P3["Favoritos"]
+    UI --> P4["Mis productos"]
+    UI --> P5["Detalle de producto"]
+    UI --> P6["Chat"]
+    UI --> P7["Preferencias de notificaciones"]
   end
 
   subgraph Backend
@@ -25,12 +25,12 @@ flowchart TD
     API --> A2["/api/products"]
     API --> A3["/api/favorites"]
     API --> A4["/api/notification-preferences"]
-    WS --> S1["Events Socket.IO"]
+    WS --> S1["Eventos Socket.IO"]
     WS --> S2["/notify"]
   end
 ```
 
-## Connexions entre components
+## Conexiones entre componentes
 
 ```mermaid
 flowchart LR
@@ -41,65 +41,65 @@ flowchart LR
   API -->|put| BLOB[Vercel Blob]
 ```
 
-## Flux: Autenticacio i entrada a l'app
+## Flujo: autenticación y entrada a la app
 
 ```mermaid
 sequenceDiagram
-  participant U as Usuari
+  participant U as Usuario
   participant UI as Frontend
   participant API as /api/auth/login
   participant DB as PostgreSQL
 
-  U->>UI: Introdueix nickname + contrasenya
+  U->>UI: Introduce nickname + contraseña
   UI->>API: POST /api/auth/login
-  API->>DB: Verifica usuari
-  DB-->>API: Usuari vàlid
+  API->>DB: Verifica usuario
+  DB-->>API: Usuario válido
   API-->>UI: userId + nickname
-  UI->>UI: Desa a localStorage
+  UI->>UI: Guarda en localStorage
   UI-->>U: Navega a /app
 ```
 
-## Flux: Publicar producte
+## Flujo: publicar producto
 
 ```mermaid
 sequenceDiagram
-  participant U as Usuari
+  participant U as Usuario
   participant UI as Frontend
   participant API as /api/products
   participant BLOB as Vercel Blob
   participant DB as PostgreSQL
 
-  U->>UI: Omple formulari + puja imatges
+  U->>UI: Rellena formulario + sube imágenes
   UI->>API: POST /api/products (multipart)
-  API->>BLOB: Upload imatges
-  BLOB-->>API: URL imatges
-  API->>DB: Crear Producte
-  DB-->>API: Producte creat
-  API-->>UI: Producte creat
-  UI-->>U: Redirigeix a /app
+  API->>BLOB: Upload imágenes
+  BLOB-->>API: URL imágenes
+  API->>DB: Crear producto
+  DB-->>API: Producto creado
+  API-->>UI: Producto creado
+  UI-->>U: Redirige a /app
 ```
 
-## Flux: Afegir a preferits + notificacio
+## Flujo: añadir a favoritos + notificación
 
 ```mermaid
 sequenceDiagram
-  participant U as Usuari
+  participant U as Usuario
   participant UI as Frontend
   participant API as /api/favorites
   participant DB as PostgreSQL
   participant WS as Socket.IO server
 
-  U->>UI: Clica "Preferit"
+  U->>UI: Clic en "Favorito"
   UI->>API: POST /api/favorites
   API->>DB: Crear Favorite
   DB-->>API: OK
-  API->>WS: POST /notify (tipus "favorite")
-  WS->>DB: Llegir preferencies receptor
-  WS-->>WS: Filtrar si cal
-  WS-->>UI: app-notification (si procedeix)
+  API->>WS: POST /notify (tipo "favorite")
+  WS->>DB: Leer preferencias del receptor
+  WS-->>WS: Filtrar si hace falta
+  WS-->>UI: app-notification (si procede)
 ```
 
-## Flux: Xat en temps real
+## Flujo: chat en tiempo real
 
 ```mermaid
 sequenceDiagram
@@ -108,36 +108,36 @@ sequenceDiagram
   participant DB as PostgreSQL
 
   UI->>WS: connect (userId, nickname)
-  WS->>DB: Carrega últims missatges
+  WS->>DB: Carga últimos mensajes
   WS-->>UI: load-messages
   UI->>WS: general-message
-  WS->>DB: Desa missatge
+  WS->>DB: Guarda mensaje
   WS-->>UI: general-message (broadcast)
 ```
 
-## Flux: Preferencies de notificacions
+## Flujo: preferencias de notificaciones
 
 ```mermaid
 sequenceDiagram
-  participant U as Usuari
+  participant U as Usuario
   participant UI as Frontend
   participant API as /api/notification-preferences
   participant DB as PostgreSQL
 
-  U->>UI: Obre modal preferencies
+  U->>UI: Abre modal de preferencias
   UI->>API: GET /api/notification-preferences
-  API->>DB: Llegeix preferencies
-  DB-->>API: Dades preferencies
-  API-->>UI: Mostra valors
-  U->>UI: Desa canvis
+  API->>DB: Lee preferencias
+  DB-->>API: Datos de preferencias
+  API-->>UI: Muestra valores
+  U->>UI: Guarda cambios
   UI->>API: PUT /api/notification-preferences
-  API->>DB: Upsert preferencies
+  API->>DB: Upsert preferencias
   DB-->>API: OK
-  API-->>UI: Confirmacio
+  API-->>UI: Confirmación
 ```
 
-## Notes rapides
-- El frontend i les API conviuen en Next.js.
-- Socket.IO corre a `server.js` i comparteix DB amb l'API.
-- Les notificacions push del navegador es gestionen al client.
-- Les preferencies s'apliquen abans d'emetre notificacions via `/notify`.
+## Notas rápidas
+- El frontend y las API conviven en Next.js.
+- Socket.IO corre en `server.js` y comparte BD con la API.
+- Las notificaciones push del navegador se gestionan en el cliente.
+- Las preferencias se aplican antes de emitir notificaciones vía `/notify`.

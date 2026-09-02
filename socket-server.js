@@ -148,6 +148,9 @@ const getAllowedOrigins = () => {
   if (process.env.NEXT_PUBLIC_ALLOWED_ORIGINS) {
     return process.env.NEXT_PUBLIC_ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   }
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return [process.env.NEXT_PUBLIC_APP_URL.trim()]
+  }
   // En producció, permetre qualsevol origen si no està especificat (per desenvolupament)
   return process.env.NODE_ENV === 'production' ? [] : '*'
 }
@@ -204,9 +207,11 @@ io.on('connection', (socket) => {
   let userId = payload?.userId
   let nickname = payload?.nickname ?? null
   if (!userId || !nickname) {
-    const q = socket.handshake.query || {}
-    userId = userId || (typeof q.userId === 'string' ? q.userId : null)
-    nickname = nickname || (typeof q.nickname === 'string' ? q.nickname : null)
+    if (dev) {
+      const q = socket.handshake.query || {}
+      userId = userId || (typeof q.userId === 'string' ? q.userId : null)
+      nickname = nickname || (typeof q.nickname === 'string' ? q.nickname : null)
+    }
   }
 
   console.log('=== NOVA CONNEXIÓ SOCKET.IO ===')

@@ -67,7 +67,7 @@
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },
-  "description": "Aplicació web per a intercanviar productes amb sistema de xat en temps real.",
+  "description": "Plataforma vecinal de préstamo e intercambio de productos, con catálogo, reservas y chat en tiempo real. Trabajo de Fin de Máster.",
   "main": "next.config.js",
   "engines": {
     "node": ">=18.0.0",
