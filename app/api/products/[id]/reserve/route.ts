@@ -9,10 +9,10 @@ import { postSocketNotify } from '@/lib/notify-fetch'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = params instanceof Promise ? await params : params
+    const resolvedParams = await params
     const idValidation = validateUuid(resolvedParams.id, 'producte')
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)

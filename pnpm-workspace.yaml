@@ -1,0 +1,6 @@
+packages:
+  - '.'
+
+# Enduriment supply-chain (react-doctor / pnpm)
+minimumReleaseAge: 10080
+trustPolicy: no-downgrade

@@ -17,10 +17,10 @@ import { postSocketNotify } from '@/lib/notify-fetch'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = params instanceof Promise ? await params : params
+    const resolvedParams = await params
     const idValidation = validateUuid(resolvedParams.id, 'producte')
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)
@@ -47,10 +47,10 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = params instanceof Promise ? await params : params
+    const resolvedParams = await params
     const idValidation = validateUuid(resolvedParams.id, 'producte')
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)
@@ -153,10 +153,10 @@ export async function DELETE(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> | { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = params instanceof Promise ? await params : params
+    const resolvedParams = await params
     const formData = await request.formData()
     const authUserId = getAuthUserId(request)
 

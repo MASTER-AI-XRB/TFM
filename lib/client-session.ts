@@ -3,6 +3,9 @@ const isBrowser = typeof window !== 'undefined'
 export const SESSION_CHANGE_EVENT = 'xarxa-session-change'
 export const PUSH_PERMISSION_GRANTED_EVENT = 'xarxa-push-permission-granted'
 
+/** Token de socket només en memòria (no localStorage → XSS no el pot llegir del storage). */
+let memorySocketToken: string | null = null
+
 export function notifyStoredSessionChange() {
   if (!isBrowser) return
   window.dispatchEvent(new Event(SESSION_CHANGE_EVENT))
@@ -11,17 +14,16 @@ export function notifyStoredSessionChange() {
 export const getStoredNickname = () =>
   isBrowser ? window.localStorage.getItem('nickname') : null
 
-export const getStoredSocketToken = () =>
-  isBrowser ? window.localStorage.getItem('socketToken') : null
+export const getStoredSocketToken = () => memorySocketToken
 
 export const setStoredSession = (nickname: string, socketToken?: string | null) => {
   if (!isBrowser) return
   window.localStorage.setItem('nickname', nickname)
-  if (socketToken) {
-    window.localStorage.setItem('socketToken', socketToken)
-  } else {
-    window.localStorage.removeItem('socketToken')
+  if (socketToken !== undefined) {
+    memorySocketToken = socketToken
   }
+  // Neteja residual d’instal·lacions antigues
+  window.localStorage.removeItem('socketToken')
   notifyStoredSessionChange()
 }
 
@@ -29,6 +31,7 @@ export const clearStoredSession = () => {
   if (!isBrowser) return
   window.localStorage.removeItem('nickname')
   window.localStorage.removeItem('socketToken')
+  memorySocketToken = null
   notifyStoredSessionChange()
 }
 

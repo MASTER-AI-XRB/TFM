@@ -8,10 +8,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { nickname: string } }
+  { params }: { params: Promise<{ nickname: string }> }
 ) {
   try {
-    const nickname = params?.nickname
+    const { nickname } = await params
     if (!nickname) {
       return apiError('Nickname invàlid', 400)
     }

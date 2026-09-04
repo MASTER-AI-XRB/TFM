@@ -48,11 +48,10 @@ export default function AppLayout({
     }) => {
       if (cancelled) return
       if (data?.needsNickname) {
-        // Handshake OAuth: middleware deixa passar /app sense nick si només hi ha next-auth.
-        // Soft-nav a complete-profile; el middleware ja protegeix el cas sense cookie.
+        // Handshake OAuth: full navigation (evita router.replace dins useEffect).
         clearStoredSession()
         if (pathname !== '/app/complete-profile') {
-          router.replace('/app/complete-profile')
+          window.location.assign('/app/complete-profile')
         }
         return
       }
@@ -81,7 +80,7 @@ export default function AppLayout({
             if (cancelled || !data) return
             if (data.needsNickname) {
               clearStoredSession()
-              router.replace('/app/complete-profile')
+              window.location.assign('/app/complete-profile')
               return
             }
             if (data.nickname && data.socketToken) {
