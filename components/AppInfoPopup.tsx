@@ -1,94 +1,20 @@
 'use client'
 
-import { useState, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '@/lib/i18n'
 import { useOnboarding } from '@/lib/onboarding-context'
-
-const ONBOARDING_KEY = 'xarxa-onboarding-seen'
-const ONBOARDING_CHANGE_EVENT = 'xarxa-onboarding-change'
-
-const USE_CASE_KEYS = [
-  'products',
-  'favorites',
-  'myProducts',
-  'reserve',
-  'chat',
-  'notifications',
-  'settings',
-] as const
-
-/** Pas extra entre reserva i xat: obliga a obrir "Més detalls" de reserves */
-const RESERVE_DETAIL_STEP = 6
-/** Passos: 0 = icona, 1 = titular, 2..5 = productes..reserva, 6 = Més detalls, 7..9 = xat..configuració */
-const ONBOARDING_STEPS = 1 + 1 + USE_CASE_KEYS.length + 1 // icon + header + 7 seccions + 1 pas "Més detalls"
-
-function markOnboardingSeen() {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(ONBOARDING_KEY, '1')
-  window.dispatchEvent(new Event(ONBOARDING_CHANGE_EVENT))
-}
-
-function subscribeOnboardingSeen(onStoreChange: () => void) {
-  if (typeof window === 'undefined') return () => {}
-  const handler = () => onStoreChange()
-  window.addEventListener(ONBOARDING_CHANGE_EVENT, handler)
-  window.addEventListener('storage', handler)
-  return () => {
-    window.removeEventListener(ONBOARDING_CHANGE_EVENT, handler)
-    window.removeEventListener('storage', handler)
-  }
-}
-
-function getOnboardingSeenSnapshot(): boolean {
-  if (typeof window === 'undefined') return true
-  return !!window.localStorage.getItem(ONBOARDING_KEY)
-}
-
-function useOnboardingSeen(): boolean {
-  return useSyncExternalStore(
-    subscribeOnboardingSeen,
-    getOnboardingSeenSnapshot,
-    () => true
-  )
-}
-
-const DROPDOWN_GAP = 4
-const MOBILE_LEFT_MARGIN = 8 // 0.5rem, marge mínim per no tallar per l'esquerra
-const INFO_PANEL_MAX_WIDTH_PX = 352 // 22rem
-
-type HoleCircle = { x: number; y: number; r: number }
-type HoleBox = { left: number; top: number; width: number; height: number }
-
-function ReserveIcon({
-  className = 'w-5 h-5',
-  fill = 'none',
-}: {
-  className?: string
-  fill?: 'none' | 'currentColor'
-}) {
-  return (
-    <svg
-      className={className}
-      fill={fill}
-      stroke="currentColor"
-      viewBox={fill === 'currentColor' ? '0 0 20 20' : '0 0 24 24'}
-      preserveAspectRatio="xMidYMid meet"
-      aria-hidden
-    >
-      {fill === 'currentColor' ? (
-        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-      ) : (
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-        />
-      )}
-    </svg>
-  )
-}
+import {
+  DROPDOWN_GAP,
+  INFO_PANEL_MAX_WIDTH_PX,
+  MOBILE_LEFT_MARGIN,
+  ONBOARDING_STEPS,
+  RESERVE_DETAIL_STEP,
+} from '@/lib/onboarding-constants'
+import { markOnboardingSeen, useOnboardingSeen } from '@/lib/use-onboarding-seen'
+import { AppInfoPanel } from '@/components/AppInfoPanel'
+import { OnboardingOverlay, type HoleBox, type HoleCircle } from '@/components/OnboardingOverlay'
+import { ReserveDetailDialog } from '@/components/ReserveDetailDialog'
 
 export function AppInfoPopup() {
   const [open, setOpen] = useState(false)
@@ -106,7 +32,6 @@ export function AppInfoPopup() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const headerRef = useRef<HTMLElement | null>(null)
   const reserveDetailButtonRef = useRef<HTMLButtonElement>(null)
-  const reserveDetailDialogRef = useRef<HTMLDialogElement>(null)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const { t } = useI18n()
   const { setOnboardingActive } = useOnboarding()
@@ -224,16 +149,6 @@ export function AppInfoPopup() {
     prevReserveDetailOpen.current = reserveDetailOpen
   }, [reserveDetailOpen, showOnboarding, onboardingStep])
 
-  useEffect(() => {
-    const dialog = reserveDetailDialogRef.current
-    if (!dialog) return
-    if (reserveDetailOpen) {
-      if (!dialog.open) dialog.showModal()
-    } else if (dialog.open) {
-      dialog.close()
-    }
-  }, [reserveDetailOpen])
-
   useLayoutEffect(() => {
     if (!showOnboarding || !open || onboardingStep < 1) {
       setStepRect(null)
@@ -272,90 +187,20 @@ export function AppInfoPopup() {
     windowSize.h > 0 &&
     (onboardingStep === 0 ? !!buttonRect : !!stepRect && open)
 
-  const overlayZ = 70
-  const onboardingOverlay = showOverlay && (
-    <>
-      {onboardingStep === 0 && buttonRect ? (
-        <>
-          {/* Pas 0: forat circular a la icona (i); z-[70] per sobre del popup */}
-          <div
-            className="fixed inset-0 pointer-events-none"
-            style={{
-              zIndex: overlayZ,
-              background: 'rgba(0,0,0,0.6)',
-              maskImage: `radial-gradient(circle at ${buttonRect.x}px ${buttonRect.y}px, transparent ${buttonRect.r}px, black ${buttonRect.r + 1}px)`,
-              WebkitMaskImage: `radial-gradient(circle at ${buttonRect.x}px ${buttonRect.y}px, transparent ${buttonRect.r}px, black ${buttonRect.r + 1}px)`,
-            }}
-            aria-hidden
-          />
-          <div className="fixed inset-0 w-full h-full" style={{ zIndex: overlayZ, pointerEvents: 'none' }} aria-hidden>
-            <div className="absolute bg-transparent" style={{ left: 0, top: 0, width: windowSize.w, height: Math.max(0, buttonRect.y - buttonRect.r), pointerEvents: 'auto' }} />
-            <div className="absolute bg-transparent" style={{ left: 0, top: buttonRect.y - buttonRect.r, width: Math.max(0, buttonRect.x - buttonRect.r), height: 2 * buttonRect.r, pointerEvents: 'auto' }} />
-            <div className="absolute bg-transparent" style={{ left: buttonRect.x + buttonRect.r, top: buttonRect.y - buttonRect.r, width: Math.max(0, windowSize.w - (buttonRect.x + buttonRect.r)), height: 2 * buttonRect.r, pointerEvents: 'auto' }} />
-            <div className="absolute bg-transparent" style={{ left: 0, top: buttonRect.y + buttonRect.r, width: windowSize.w, height: Math.max(0, windowSize.h - (buttonRect.y + buttonRect.r)), pointerEvents: 'auto' }} />
-          </div>
-          {/* Posició explícita (no transform) perquè l'animació pulse-ring no sobreescrigui el centrat; +2px compensa la vora */}
-          <div
-            className="fixed rounded-full border-8 border-yellow-500 animate-[pulse-ring_1.5s_ease-in-out_infinite] pointer-events-none"
-            style={{
-              zIndex: overlayZ + 1,
-              left: buttonRect.x - (buttonRect.r + 8) / 2,
-              top: buttonRect.y - (buttonRect.r + 8) / 2,
-              width: buttonRect.r + 8,
-              height: buttonRect.r + 8,
-            }}
-            aria-hidden
-          />
-        </>
-      ) : stepRect ? (
-        <>
-          {/* Pas ≥1: forat rectangular amb mida del contingut; 4 bandes fosques per sobre del popup (z-[70]) */}
-          <div className="fixed inset-0 w-full h-full" style={{ zIndex: overlayZ, pointerEvents: 'none' }}>
-            <button
-              type="button"
-              className="absolute bg-black/60 border-0 p-0"
-              style={{ left: 0, top: 0, width: windowSize.w, height: Math.max(0, stepRect.top), pointerEvents: 'auto' }}
-              onClick={advanceOnboarding}
-              aria-label={t('common.next')}
-            />
-            <button
-              type="button"
-              className="absolute bg-black/60 border-0 p-0"
-              style={{ left: 0, top: stepRect.top, width: Math.max(0, stepRect.left), height: stepRect.height, pointerEvents: 'auto' }}
-              onClick={advanceOnboarding}
-              aria-label={t('common.next')}
-            />
-            <button
-              type="button"
-              className="absolute bg-black/60 border-0 p-0"
-              style={{ left: stepRect.left + stepRect.width, top: stepRect.top, width: Math.max(0, windowSize.w - (stepRect.left + stepRect.width)), height: stepRect.height, pointerEvents: 'auto' }}
-              onClick={advanceOnboarding}
-              aria-label={t('common.next')}
-            />
-            <button
-              type="button"
-              className="absolute bg-black/60 border-0 p-0"
-              style={{ left: 0, top: stepRect.top + stepRect.height, width: windowSize.w, height: Math.max(0, windowSize.h - (stepRect.top + stepRect.height)), pointerEvents: 'auto' }}
-              onClick={advanceOnboarding}
-              aria-label={t('common.next')}
-            />
-          </div>
-          {/* Vora de ressalt al voltant del forat */}
-          <div
-            className="fixed rounded-md border-2 border-yellow-500 pointer-events-none"
-            style={{
-              zIndex: overlayZ + 1,
-              left: stepRect.left,
-              top: stepRect.top,
-              width: stepRect.width,
-              height: stepRect.height,
-            }}
-            aria-hidden
-          />
-        </>
-      ) : null}
-    </>
-  )
+  const getPanelStyle = () => {
+    if (!anchorRect || typeof window === 'undefined') {
+      return typeof window !== 'undefined'
+        ? { top: '1rem', right: '1rem', left: '1rem', margin: '0 auto', maxWidth: '22rem' }
+        : undefined
+    }
+    const w = Math.min(window.innerWidth * 0.9, INFO_PANEL_MAX_WIDTH_PX)
+    const rightAligned = window.innerWidth - anchorRect.right
+    const rightSoLeftMargin = window.innerWidth - MOBILE_LEFT_MARGIN - w
+    return {
+      top: anchorRect.bottom + DROPDOWN_GAP,
+      right: Math.min(rightAligned, rightSoLeftMargin),
+    }
+  }
 
   return (
     <div className="relative flex items-center">
@@ -402,184 +247,48 @@ export function AppInfoPopup() {
       </button>
       {open && (() => {
         const portalPanel = (showOnboarding && typeof document !== 'undefined') || (isMobile && typeof document !== 'undefined' && anchorRect)
-        const isFixed = portalPanel
+        const isFixed = !!portalPanel
         const panelZ = showOnboarding ? 'z-[65]' : 'z-[60]'
         const maxHeightClass = showOnboarding ? 'max-h-[90vh]' : 'max-h-[min(80vh,28rem)]'
         const overflowClass = showOnboarding ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'
         const panelContent = (
-          <div
-            ref={panelRef}
-            className={
-              isFixed
-                ? `fixed ${panelZ} w-[min(90vw,22rem)] max-w-[calc(100vw-1rem)] ${maxHeightClass} ${overflowClass} rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex flex-col`
-                : `absolute right-0 top-full mt-2 w-[min(90vw,22rem)] ${maxHeightClass} ${overflowClass} rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 z-50 flex flex-col`
-            }
-            style={
-              isFixed && anchorRect && typeof window !== 'undefined'
-                ? (() => {
-                    const w = Math.min(window.innerWidth * 0.9, INFO_PANEL_MAX_WIDTH_PX)
-                    const rightAligned = window.innerWidth - anchorRect.right
-                    const rightSoLeftMargin = window.innerWidth - MOBILE_LEFT_MARGIN - w
-                    return {
-                      top: anchorRect.bottom + DROPDOWN_GAP,
-                      right: Math.min(rightAligned, rightSoLeftMargin),
-                    }
-                  })()
-                : isFixed && !anchorRect && typeof window !== 'undefined'
-                  ? { top: '1rem', right: '1rem', left: '1rem', margin: '0 auto', maxWidth: '22rem' }
-                  : undefined
-            }
-          >
-          {showOnboarding ? (
-            <button
-              type="button"
-              ref={headerRef}
-              className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0 text-left w-full"
-              onClick={advanceOnboarding}
-              aria-label={t('common.next')}
-            >
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {t('info.title')}
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                {t('info.intro')}
-              </p>
-            </button>
-          ) : (
-            <div
-              ref={headerRef}
-              className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0 cursor-default"
-            >
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {t('info.title')}
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                {t('info.intro')}
-              </p>
-            </div>
-          )}
-          <div
-            className={`px-3 py-3 space-y-3 ${showOnboarding ? 'flex-none' : 'flex-1 min-h-0 overflow-y-auto'}`}
-          >
-            {USE_CASE_KEYS.map((key, index) => (
-              <div
-                key={key}
-                ref={(el) => {
-                  if (stepRefs.current) stepRefs.current[index] = el
-                }}
-                className="text-sm border-l-2 border-blue-200 dark:border-blue-700 pl-3 py-0.5 cursor-default"
-                onClick={showOnboarding ? advanceOnboarding : undefined}
-                onKeyDown={
-                  showOnboarding
-                    ? (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault()
-                          advanceOnboarding()
-                        }
-                      }
-                    : undefined
-                }
-                role={showOnboarding ? 'button' : undefined}
-                tabIndex={showOnboarding ? 0 : undefined}
-                aria-label={showOnboarding ? t('common.next') : undefined}
-              >
-                <p className="font-medium text-gray-900 dark:text-white">
-                  {t(`info.${key}Title`)}
-                </p>
-                <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs leading-relaxed">
-                  {t(`info.${key}Desc`)}
-                </p>
-                {key === 'reserve' && (
-                  <button
-                    ref={reserveDetailButtonRef}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setReserveDetailOpen(true)
-                    }}
-                    className="mt-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-0.5"
-                  >
-                    {t('info.reserveMoreDetails')}
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="px-3 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 shrink-0">
-            <button
-              type="button"
-              onClick={handleClosePopup}
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              {t('common.close')}
-            </button>
-          </div>
-        </div>
+          <AppInfoPanel
+            panelRef={panelRef}
+            headerRef={headerRef}
+            stepRefs={stepRefs}
+            reserveDetailButtonRef={reserveDetailButtonRef}
+            showOnboarding={showOnboarding}
+            isFixed={isFixed}
+            panelZ={panelZ}
+            maxHeightClass={maxHeightClass}
+            overflowClass={overflowClass}
+            style={isFixed ? getPanelStyle() : undefined}
+            onAdvance={advanceOnboarding}
+            onClose={handleClosePopup}
+            onOpenReserveDetail={() => setReserveDetailOpen(true)}
+          />
         )
         return portalPanel && typeof document !== 'undefined'
           ? createPortal(panelContent, document.body)
           : panelContent
       })()}
       {/* Overlay d'onboarding després del panell per quedar per sobre (z-[70]) */}
-      {typeof document !== 'undefined' && onboardingOverlay && createPortal(onboardingOverlay, document.body)}
-      {/* Popup de detall de reserves (dos tipus); es tanca amb el botó */}
-      <dialog
-        ref={reserveDetailDialogRef}
-        className="fixed inset-0 z-[80] m-auto max-h-[85vh] w-full max-w-md rounded-lg border border-gray-200 bg-white p-0 shadow-xl dark:border-gray-700 dark:bg-gray-800 open:flex open:flex-col backdrop:bg-black/50"
-        aria-labelledby="reserve-detail-title"
+      {typeof document !== 'undefined' &&
+        showOverlay &&
+        createPortal(
+          <OnboardingOverlay
+            onboardingStep={onboardingStep}
+            buttonRect={buttonRect}
+            stepRect={stepRect}
+            windowSize={windowSize}
+            onAdvance={advanceOnboarding}
+          />,
+          document.body
+        )}
+      <ReserveDetailDialog
+        open={reserveDetailOpen}
         onClose={() => setReserveDetailOpen(false)}
-      >
-          <div className="flex max-h-[85vh] w-full flex-col overflow-hidden">
-            <div className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0">
-              <h3 id="reserve-detail-title" className="text-sm font-semibold text-gray-900 dark:text-white">
-                {t('info.reserveDetailTitle')}
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-                {t('info.reserveDetailIntro')}
-              </p>
-            </div>
-            <div className="overflow-y-auto flex-1 min-h-0 px-4 py-3 space-y-3">
-              <div className="text-sm border-l-2 border-blue-200 dark:border-blue-700 pl-3 py-0.5">
-                <p className="font-medium text-gray-900 dark:text-white inline-flex items-center gap-1 flex-wrap">
-                  {t('info.reserveType1Title')}
-                  <span className="inline-flex items-center justify-center rounded-full p-1 bg-blue-500 text-white shrink-0 ml-1" aria-hidden>
-                    <ReserveIcon className="w-4 h-4" fill="currentColor" />
-                  </span>
-                </p>
-                <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs leading-relaxed">
-                  {t('info.reserveType1DescBefore')}
-                  <span className="inline-flex align-middle rounded-full p-0.5 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 shrink-0 mx-0.5" aria-hidden>
-                    <ReserveIcon className="w-3.5 h-3.5" />
-                  </span>
-                  {t('info.reserveType1DescAfter')}
-                </p>
-              </div>
-              <div className="text-sm border-l-2 border-blue-200 dark:border-blue-700 pl-3 py-0.5">
-                <p className="font-medium text-gray-900 dark:text-white inline-flex items-center gap-1 flex-wrap">
-                  {t('info.reserveType2Title')}
-                  <span className="inline-flex items-center justify-center rounded-full p-1 bg-yellow-500 text-white shrink-0 ml-1" aria-hidden>
-                    <ReserveIcon className="w-4 h-4" fill="currentColor" />
-                  </span>
-                </p>
-                <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs leading-relaxed">
-                  {t('info.reserveType2Desc')}
-                </p>
-              </div>
-            </div>
-            <div className="px-4 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 shrink-0">
-              <button
-                type="button"
-                onClick={() => setReserveDetailOpen(false)}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-      </dialog>
+      />
     </div>
   )
 }

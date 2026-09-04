@@ -1,72 +1,37 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
-import { useTheme } from '@/lib/theme'
-import TranslateButton from '@/components/TranslateButton'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
 import { useStoredViewMode } from '@/lib/use-stored-view-mode'
+import { useProductStateSync } from '@/lib/use-product-state-sync'
 import { formatDateShortCa } from '@/lib/format-date'
 import { logError } from '@/lib/client-logger'
 import {
   canReserveProduct,
   canUnreserveProduct,
-  getFilletBoxShadow,
-  getFilletClass,
-  isReservedByOwner,
 } from '@/lib/product-fillets'
-
-interface Product {
-  id: string
-  name: string
-  description: string | null
-  images: string[]
-  reserved: boolean
-  reservedBy: { nickname: string } | null
-  prestec: boolean
-  user: { nickname: string }
-  createdAt: string
-}
+import type { ListProduct } from '@/lib/product-list-types'
+import { ViewModeToggle } from '@/components/products/ViewModeToggle'
+import { RefreshSpinButton } from '@/components/products/RefreshSpinButton'
+import { ProductCardsView } from '@/components/products/ProductCardsView'
+import { ProductOwnerActions } from '@/components/products/ProductOwnerActions'
 
 export default function MyProductsPage() {
   const [viewMode, setViewMode] = useStoredViewMode()
-  const [refreshSpinning, setRefreshSpinning] = useState(false)
   const nickname = useStoredNickname()
   const { t } = useI18n()
-  const { theme } = useTheme()
 
   const {
     data: products = [],
     isLoading: loading,
     mutate,
-  } = useSWR<Product[]>(nickname ? '/api/products/my' : null, {
+  } = useSWR<ListProduct[]>(nickname ? '/api/products/my' : null, {
     revalidateOnFocus: true,
   })
 
-  useEffect(() => {
-    const onProductState = (e: Event) => {
-      const { productId, reserved, reservedBy, prestec } = (e as CustomEvent).detail || {}
-      if (!productId) return
-      void mutate(
-        (current) =>
-          current?.map((p) =>
-            p.id !== productId
-              ? p
-              : {
-                  ...p,
-                  ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
-                  ...(typeof prestec === 'boolean' && { prestec }),
-                }
-          ),
-        { revalidate: false }
-      )
-    }
-    window.addEventListener('product-state', onProductState)
-    return () => window.removeEventListener('product-state', onProductState)
-  }, [mutate])
+  useProductStateSync(mutate)
 
   const refreshMyProducts = () => mutate(undefined, { revalidate: true })
 
@@ -74,7 +39,12 @@ export default function MyProductsPage() {
     e.preventDefault()
     e.stopPropagation()
     const product = products.find((p) => p.id === productId)
-    if (!product || (!canReserveProduct(product, nickname) && !canUnreserveProduct(product, nickname))) return
+    if (
+      !product ||
+      (!canReserveProduct(product, nickname) && !canUnreserveProduct(product, nickname))
+    ) {
+      return
+    }
     const nextReserved = !product.reserved
 
     void mutate(
@@ -172,65 +142,11 @@ export default function MyProductsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{t('myProducts.title')}</h1>
-        {/* Botó per canviar vista (visible a mòbil i desktop) */}
-        <button
-          onClick={() => {
-            const next = viewMode === 'grid' ? 'list' : 'grid'
-            setViewMode(next)
-          }}
-          className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-          title={viewMode === 'grid' ? t('products.switchToListView') : t('products.switchToGridView')}
-        >
-            {viewMode === 'grid' ? (
-              <svg
-                className="w-6 h-6 text-gray-700 dark:text-gray-300"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                />
-              </svg>
-            ) : (
-              <svg
-                className="w-6 h-6 text-gray-700 dark:text-gray-300"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                />
-              </svg>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              setRefreshSpinning(true)
-              refreshMyProducts()
-              setTimeout(() => setRefreshSpinning(false), 500)
-            }}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-            title={t('products.refresh')}
-            aria-label={t('products.refresh')}
-          >
-            <svg
-              className={`w-6 h-6 text-gray-700 dark:text-gray-300 inline-block ${refreshSpinning ? 'animate-refresh-spin' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            {t('myProducts.title')}
+          </h1>
+          <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
+          <RefreshSpinButton onRefresh={() => void refreshMyProducts()} />
         </div>
         <Link
           href="/app/products/new"
@@ -251,342 +167,26 @@ export default function MyProductsPage() {
           </Link>
         </div>
       ) : (
-        <>
-          {/* Vista grid compacta per mòbil i desktop */}
-          {viewMode === 'grid' && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3 mb-4">
-              {products.map((product) => (
-                <Link
-                key={product.id}
-                href={`/app/products/${product.id}`}
-                className={`relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group ${getFilletClass(product, nickname)}`}
-              >
-                {product.images && product.images.length > 0 ? (
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 16vw"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">No image</span>
-                  </div>
-                )}
-                {/* Overlay amb informació al hover */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs text-center px-2">
-                    <p className="font-semibold line-clamp-2">{product.name}</p>
-                  </div>
-                </div>
-                {/* Botons de reservat, préstec i eliminar */}
-                <div className="absolute top-1 right-1 flex flex-col gap-1">
-                  {canUnreserveProduct(product, nickname) ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        toggleReserved(product.id, e)
-                      }}
-                      className={`rounded-full p-2 shadow-md transition ${
-                        product.reserved
-                          ? isReservedByOwner(product)
-                            ? 'bg-blue-500 text-white hover:bg-blue-600'
-                            : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                          : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                      title={product.reserved ? t('products.unreserveTitle') : t('products.reserved')}
-                    >
-                      {product.reserved ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" preserveAspectRatio="xMidYMid meet">
-                          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                        </svg>
-                      )}
-                    </button>
-                  ) : nickname === product.user.nickname && canReserveProduct(product, nickname) ? null : (
-                    <div
-                      className={`rounded-full p-2 shadow-md ${
-                        product.reserved
-                          ? isReservedByOwner(product)
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-yellow-500 text-white'
-                          : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                      }`}
-                      title={product.reserved ? t('products.reserved') : t('products.notReserved')}
-                    >
-                      {product.reserved ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" preserveAspectRatio="xMidYMid meet">
-                          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                  {canReserveProduct(product, nickname) && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        toggleReserved(product.id, e)
-                      }}
-                      className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                      title={t('products.reserveTitle')}
-                    >
-                      <svg
-                        className="w-5 h-5 text-gray-600 dark:text-gray-300"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        preserveAspectRatio="xMidYMid meet"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    </button>
-                  )}
-                  {/* Botó per préstec */}
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      togglePrestec(product.id, e)
-                    }}
-                    className={`rounded-full p-2 shadow-md transition ${
-                      product.prestec
-                        ? 'bg-green-500 hover:bg-green-600'
-                        : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                    title={product.prestec ? t('products.unprestecTitle') : t('products.prestecTitle')}
-                  >
-                    <Image
-                      src={product.prestec ? '/prestec_on.png' : (theme === 'dark' ? '/prestec_off_dark.png' : '/prestec_off.png')}
-                      alt={product.prestec ? t('products.prestec') : ''}
-                      width={20}
-                      height={20}
-                      className="w-5 h-5 object-contain"
-                    />
-                  </button>
-                  {/* Botó per eliminar */}
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      deleteProduct(product.id, e)
-                    }}
-                    className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md hover:bg-red-100 dark:hover:bg-red-900/30 transition"
-                    title={t('products.deleteProduct')}
-                  >
-                    <svg
-                      className="w-5 h-5 text-red-600 dark:text-red-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      preserveAspectRatio="xMidYMid meet"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                </Link>
-              ))}
-            </div>
+        <ProductCardsView
+          products={products}
+          viewMode={viewMode}
+          nickname={nickname}
+          renderMeta={(product) => (
+            <>
+              {t('products.publishedOn')} {formatDateShortCa(product.createdAt)}
+            </>
           )}
-          {/* Vista detallada per desktop i mòbil (quan viewMode === 'list') */}
-          {/* Vista detallada per desktop i mòbil (quan viewMode === 'list') */}
-          <div className={`${viewMode === 'list' ? 'grid' : 'hidden'} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6`}>
-            {products.map((product) => (
-              <div
-              key={product.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900 overflow-hidden hover:shadow-lg dark:hover:shadow-gray-800 transition flex flex-col"
-            >
-              {product.images && product.images.length > 0 && (
-                <div className="h-48 bg-gray-200 dark:bg-gray-700 relative flex-shrink-0">
-                  <Link href={`/app/products/${product.id}`} className="relative block w-full h-full">
-                    <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    />
-                    {getFilletBoxShadow(product, nickname) ? (
-                      <span
-                        className="absolute inset-0 pointer-events-none block"
-                        style={{ boxShadow: getFilletBoxShadow(product, nickname) }}
-                        aria-hidden
-                      />
-                    ) : null}
-                  </Link>
-                  <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
-                    {canUnreserveProduct(product, nickname) ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          toggleReserved(product.id, e)
-                        }}
-                        className={`rounded-full p-2 shadow-md transition ${
-                          product.reserved
-                            ? isReservedByOwner(product)
-                              ? 'bg-blue-500 text-white hover:bg-blue-600'
-                              : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                            : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
-                        title={product.reserved ? t('products.unreserveTitle') : t('products.reserved')}
-                      >
-                        {product.reserved ? (
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                          </svg>
-                        )}
-                      </button>
-                    ) : nickname === product.user.nickname && canReserveProduct(product, nickname) ? null : (
-                      <div
-                        className={`rounded-full p-2 shadow-md ${
-                          product.reserved
-                            ? isReservedByOwner(product)
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-yellow-500 text-white'
-                            : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                        }`}
-                        title={product.reserved ? t('products.reserved') : t('products.notReserved')}
-                      >
-                        {product.reserved ? (
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                          </svg>
-                        ) : (
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                          </svg>
-                        )}
-                      </div>
-                    )}
-                    {canReserveProduct(product, nickname) && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          toggleReserved(product.id, e)
-                        }}
-                        className="rounded-full p-2 shadow-md transition bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title={t('products.reserveTitle')}
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                        </svg>
-                      </button>
-                    )}
-                    {/* Botó per préstec */}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        togglePrestec(product.id, e)
-                      }}
-                      className={`rounded-full p-2 shadow-md transition ${
-                        product.prestec
-                          ? 'bg-green-500 hover:bg-green-600'
-                          : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                      title={product.prestec ? t('products.unprestecTitle') : t('products.prestecTitle')}
-                    >
-                      <Image
-                        src={product.prestec ? '/prestec_on.png' : (theme === 'dark' ? '/prestec_off_dark.png' : '/prestec_off.png')}
-                        alt={product.prestec ? t('products.prestec') : ''}
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
-                      />
-                    </button>
-                    {/* Botó per eliminar */}
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        deleteProduct(product.id, e)
-                      }}
-                      className="bg-white dark:bg-gray-800 rounded-full p-2 shadow-md hover:bg-red-100 dark:hover:bg-red-900/30 transition"
-                      title={t('products.deleteProduct')}
-                    >
-                      <svg
-                        className="w-5 h-5 text-red-600 dark:text-red-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="p-4 flex flex-col flex-1">
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                    <TranslateButton text={product.name} />
-                  </h3>
-                  {product.description && (
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
-                      <TranslateButton text={product.description} />
-                    </p>
-                  )}
-                </div>
-                <div className="flex justify-between items-center mt-4 sm:mt-6">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('products.publishedOn')}{' '}
-                    {formatDateShortCa(product.createdAt)}
-                  </span>
-                  <Link
-                    href={`/app/products/${product.id}`}
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition"
-                    title={t('products.seeMoreDetails')}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                  </Link>
-                </div>
-              </div>
-              </div>
-            ))}
-          </div>
-        </>
+          renderActions={(product) => (
+            <ProductOwnerActions
+              product={product}
+              nickname={nickname}
+              onToggleReserved={(e) => void toggleReserved(product.id, e)}
+              onToggleLoan={(e) => void togglePrestec(product.id, e)}
+              onDelete={(e) => void deleteProduct(product.id, e)}
+            />
+          )}
+        />
       )}
     </div>
   )
 }
-
