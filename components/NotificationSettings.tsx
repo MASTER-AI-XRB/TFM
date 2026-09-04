@@ -6,10 +6,7 @@ import { useI18n } from '@/lib/i18n'
 import { useNotifications } from '@/lib/notifications'
 import { logError } from '@/lib/client-logger'
 import { PUSH_PERMISSION_GRANTED_EVENT } from '@/lib/client-session'
-import {
-  NotificationDisableModal,
-  NotificationEnableModal,
-} from '@/components/NotificationPermissionModals'
+import { NotificationPermissionDialog } from '@/components/NotificationPermissionModals'
 import { NotificationPreferencesModal } from '@/components/NotificationPreferencesModal'
 
 export default function NotificationSettings({ embedded }: { embedded?: boolean } = {}) {
@@ -200,13 +197,15 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
         )}
       </div>
 
-      <NotificationDisableModal
+      <NotificationPermissionDialog
         open={showDisableModal}
+        mode="disable"
         isPWA={isPWA}
         onClose={() => setShowDisableModal(false)}
       />
-      <NotificationEnableModal
+      <NotificationPermissionDialog
         open={showEnableModal}
+        mode="enable"
         isPWA={isPWA}
         onClose={() => setShowEnableModal(false)}
       />

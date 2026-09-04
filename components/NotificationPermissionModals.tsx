@@ -1,169 +1,115 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
+type Mode = 'enable' | 'disable'
+
 type Props = {
   open: boolean
+  mode: Mode
   isPWA: boolean
   onClose: () => void
 }
 
-export function NotificationDisableModal({ open, isPWA, onClose }: Props) {
-  if (!open) return null
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="notif-disable-title"
-      >
-        <h3 id="notif-disable-title" className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Desactivar notificacions
-        </h3>
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          Per desactivar les notificacions, has d&apos;anar a la configuració del teu navegador:
-        </p>
-        <div className="space-y-3 mb-6 text-sm text-gray-600 dark:text-gray-400">
-          {isPWA ? (
-            <>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Android (Chrome):</strong>
-                <p className="mt-1">
-                  Configuració de l&apos;Android → Aplicacions → Xarxa Anglesola → Notificacions → Desactivar
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">iOS (Safari):</strong>
-                <p className="mt-1">
-                  Configuració de l&apos;iPhone → Safari → Pàgines web → Notificacions → Xarxa Anglesola →
-                  Desactivar
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Desktop (Chrome/Edge):</strong>
-                <p className="mt-1">
-                  Clica amb el botó dret a la icona de l&apos;aplicació a la barra de tasques → Configuració →
-                  Notificacions → Desactivar
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Chrome/Edge:</strong>
-                <p className="mt-1">
-                  Clica a l&apos;icona del cadenat (🔒) a l&apos;esquerra de la barra d&apos;adreces →
-                  Notificacions → Bloquejar
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Firefox:</strong>
-                <p className="mt-1">
-                  Clica a l&apos;icona del cadenat (🔒) → Més informació → Permisos → Notificacions → Bloquejar
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Safari:</strong>
-                <p className="mt-1">Safari → Configuració → Pàgines web → Notificacions → Bloquejar</p>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition"
-          >
-            Tancar
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+type Instruction = { title: string; body: string }
+
+const ACTION: Record<Mode, { verb: string; title: string; intro: string }> = {
+  enable: {
+    verb: 'Activar',
+    title: 'Activar notificacions',
+    intro: "Per activar les notificacions, has d'anar a la configuració del teu navegador:",
+  },
+  disable: {
+    verb: 'Desactivar',
+    title: 'Desactivar notificacions',
+    intro: "Per desactivar les notificacions, has d'anar a la configuració del teu navegador:",
+  },
 }
 
-export function NotificationEnableModal({ open, isPWA, onClose }: Props) {
-  if (!open) return null
+function browserInstructions(mode: Mode): Instruction[] {
+  const end = mode === 'enable' ? 'Permetre' : 'Bloquejar'
+  return [
+    {
+      title: 'Chrome/Edge:',
+      body: `Clica a l'icona del cadenat (🔒) a l'esquerra de la barra d'adreces → Notificacions → ${end}`,
+    },
+    {
+      title: 'Firefox:',
+      body: `Clica a l'icona del cadenat (🔒) → Més informació → Permisos → Notificacions → ${end}`,
+    },
+    {
+      title: 'Safari:',
+      body: `Safari → Configuració → Pàgines web → Notificacions → ${end}`,
+    },
+  ]
+}
+
+function pwaInstructions(mode: Mode): Instruction[] {
+  const end = mode === 'enable' ? 'Activar' : 'Desactivar'
+  const iosEnd = mode === 'enable' ? 'Permetre' : 'Desactivar'
+  return [
+    {
+      title: 'Android (Chrome):',
+      body: `Configuració de l'Android → Aplicacions → Xarxa Anglesola → Notificacions → ${end}`,
+    },
+    {
+      title: 'iOS (Safari):',
+      body: `Configuració de l'iPhone → Safari → Pàgines web → Notificacions → Xarxa Anglesola → ${iosEnd}`,
+    },
+    {
+      title: 'Desktop (Chrome/Edge):',
+      body: `Clica amb el botó dret a la icona de l'aplicació a la barra de tasques → Configuració → Notificacions → ${end}`,
+    },
+  ]
+}
+
+const DIALOG_CLASS =
+  'fixed inset-0 z-50 m-auto max-h-[90vh] w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800 backdrop:bg-black/50'
+
+export function NotificationPermissionDialog({ open, mode, isPWA, onClose }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const copy = ACTION[mode]
+  const steps = isPWA ? pwaInstructions(mode) : browserInstructions(mode)
+  const titleId = mode === 'enable' ? 'notif-enable-title' : 'notif-disable-title'
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+    if (!dialog) return
+    if (open) {
+      if (!dialog.open) dialog.showModal()
+    } else if (dialog.open) {
+      dialog.close()
+    }
+  }, [open])
+
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-      role="presentation"
+    <dialog
+      ref={dialogRef}
+      className={DIALOG_CLASS}
+      aria-labelledby={titleId}
+      onClose={onClose}
     >
-      <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="notif-enable-title"
-      >
-        <h3 id="notif-enable-title" className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Activar notificacions
-        </h3>
-        <p className="text-gray-700 dark:text-gray-300 mb-4">
-          Per activar les notificacions, has d&apos;anar a la configuració del teu navegador:
-        </p>
-        <div className="space-y-3 mb-6 text-sm text-gray-600 dark:text-gray-400">
-          {isPWA ? (
-            <>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Android (Chrome):</strong>
-                <p className="mt-1">
-                  Configuració de l&apos;Android → Aplicacions → Xarxa Anglesola → Notificacions → Activar
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">iOS (Safari):</strong>
-                <p className="mt-1">
-                  Configuració de l&apos;iPhone → Safari → Pàgines web → Notificacions → Xarxa Anglesola →
-                  Permetre
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Desktop (Chrome/Edge):</strong>
-                <p className="mt-1">
-                  Clica amb el botó dret a la icona de l&apos;aplicació a la barra de tasques → Configuració →
-                  Notificacions → Activar
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Chrome/Edge:</strong>
-                <p className="mt-1">
-                  Clica a l&apos;icona del cadenat (🔒) a l&apos;esquerra de la barra d&apos;adreces →
-                  Notificacions → Permetre
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Firefox:</strong>
-                <p className="mt-1">
-                  Clica a l&apos;icona del cadenat (🔒) → Més informació → Permisos → Notificacions → Permetre
-                </p>
-              </div>
-              <div>
-                <strong className="text-gray-900 dark:text-white">Safari:</strong>
-                <p className="mt-1">Safari → Configuració → Pàgines web → Notificacions → Permetre</p>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition"
-          >
-            Tancar
-          </button>
-        </div>
+      <h3 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        {copy.title}
+      </h3>
+      <p className="text-gray-700 dark:text-gray-300 mb-4">{copy.intro}</p>
+      <div className="space-y-3 mb-6 text-sm text-gray-600 dark:text-gray-400">
+        {steps.map((step) => (
+          <div key={step.title}>
+            <strong className="text-gray-900 dark:text-white">{step.title}</strong>
+            <p className="mt-1">{step.body}</p>
+          </div>
+        ))}
       </div>
-    </div>
+      <div className="flex gap-3 justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition"
+        >
+          Tancar
+        </button>
+      </div>
+    </dialog>
   )
 }
