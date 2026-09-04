@@ -85,7 +85,9 @@ export default function DevConsole() {
       {isDrawerOpen && (
         <>
           {/* Overlay per tancar el drawer */}
-          <div
+          <button
+            type="button"
+            aria-label="Tancar drawer"
             className="fixed inset-0 bg-black bg-opacity-50 z-40"
             onClick={() => setIsDrawerOpen(false)}
           />
@@ -96,6 +98,8 @@ export default function DevConsole() {
             <div className="px-4 py-3 border-b dark:border-gray-700 flex justify-between items-center">
               <span className="font-bold text-gray-900 dark:text-white">Eines de Desenvolupament</span>
               <button
+                type="button"
+                aria-label="Tancar"
                 onClick={() => setIsDrawerOpen(false)}
                 className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >

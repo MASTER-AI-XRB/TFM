@@ -1,34 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn, signOut } from 'next-auth/react'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useNotifications } from '@/lib/notifications'
 import { clearStoredSession } from '@/lib/client-session'
 import { APP_VERSION } from '@/lib/version'
 export default function ConfiguracioPage() {
-  const [linkedProviders, setLinkedProviders] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
   const [unlinking, setUnlinking] = useState(false)
   const [changing, setChanging] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const deletingBusyRef = useRef(false)
   const router = useRouter()
   const { t } = useI18n()
   const { showError, showInfo } = useNotifications()
 
-  useEffect(() => {
-    fetch('/api/auth/linked-accounts')
-      .then(async (res) => {
-        if (!res.ok) return
-        const data = await res.json()
-        setLinkedProviders(data?.providers ?? [])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+  const { data, isLoading: loading, mutate } = useSWR<{ providers?: string[] }>(
+    '/api/auth/linked-accounts'
+  )
+  const linkedProviders = data?.providers ?? []
 
   const hasGoogle = linkedProviders.includes('google')
 
@@ -103,7 +97,9 @@ export default function ConfiguracioPage() {
   }
 
   const handleDeleteAccount = async () => {
+    if (deletingBusyRef.current || deleting) return
     if (!window.confirm(t('legal.gdpr.deleteConfirm'))) return
+    deletingBusyRef.current = true
     setDeleting(true)
     try {
       const res = await fetch('/api/gdpr/delete', { method: 'DELETE' })
@@ -118,6 +114,7 @@ export default function ConfiguracioPage() {
     } catch {
       showError(t('common.error'), t('legal.gdpr.deleteError'))
     } finally {
+      deletingBusyRef.current = false
       setDeleting(false)
     }
   }

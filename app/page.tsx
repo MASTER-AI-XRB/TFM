@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn, useSession } from 'next-auth/react'
 import { useI18n } from '@/lib/i18n'
 import { getStoredNickname, setStoredSession } from '@/lib/client-session'
+import { useSocketTokenMutation } from '@/lib/use-socket-token'
 import LanguageSelector from '@/components/LanguageSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 
@@ -32,10 +33,14 @@ export default function Home() {
   const [logoScale, setLogoScale] = useState(1)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [transitionPhase, setTransitionPhase] = useState<'idle' | 'expanding' | 'complete'>('idle')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const loginBusyRef = useRef(false)
   const router = useRouter()
   const sessionHook = useSession()
   const { data: session, status } = sessionHook ?? { data: null, status: 'loading' as const }
   const { t } = useI18n()
+
+  const { trigger: fetchSocketToken } = useSocketTokenMutation()
 
   useEffect(() => {
     // Comprovar si ja hi ha un usuari loguejat
@@ -50,12 +55,8 @@ export default function Home() {
       router.push('/app/complete-profile')
       return
     }
-    fetch('/api/auth/socket-token')
-      .then(async (response) => {
-        const data = await response.json()
-        if (!response.ok) {
-          return
-        }
+    void fetchSocketToken()
+      .then((data) => {
         if (data?.needsNickname) {
           router.push('/app/complete-profile')
           return
@@ -66,7 +67,7 @@ export default function Home() {
         }
       })
       .catch(() => null)
-  }, [router, session, status])
+  }, [router, session, status, fetchSocketToken])
 
   useEffect(() => {
     // Ajustar la mida del logo segons la mida de la pantalla
@@ -331,6 +332,7 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loginBusyRef.current || loginLoading || isTransitioning) return
     setError('')
 
     if (!nickname.trim()) {
@@ -383,6 +385,8 @@ export default function Home() {
       }
     }
 
+    loginBusyRef.current = true
+    setLoginLoading(true)
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -397,94 +401,100 @@ export default function Home() {
         }),
       })
 
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        setError(data.error || t('auth.error'))
+        loginBusyRef.current = false
+        setLoginLoading(false)
+        return
+      }
+
       const data = await response.json()
 
-      if (response.ok) {
-        // Iniciar animació de transició
-        setIsTransitioning(true)
-        setTransitionPhase('expanding')
+      // Iniciar animació de transició
+      setIsTransitioning(true)
+      setTransitionPhase('expanding')
+      
+      // Animar el logo perquè creixi fins a ocupar tota la pantalla
+      const expandDuration = 800 // 0.8 segons per expandir-se
+      const expandStartTime = Date.now()
+      const startScale = logoScale
+      const startX = logoPosition.x
+      const startY = logoPosition.y
+      // Calcular escala per ocupar tota la pantalla (considerant que backgroundSize és un percentatge)
+      const screenDiagonal = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight)
+      const targetScale = screenDiagonal / 300 // Escala ajustada per ocupar tota la pantalla
+      
+      const expandAnimate = () => {
+        const elapsed = Date.now() - expandStartTime
+        const progress = Math.min(elapsed / expandDuration, 1)
         
-        // Animar el logo perquè creixi fins a ocupar tota la pantalla
-        const expandDuration = 800 // 0.8 segons per expandir-se
-        const expandStartTime = Date.now()
-        const startScale = logoScale
-        const startX = logoPosition.x
-        const startY = logoPosition.y
-        // Calcular escala per ocupar tota la pantalla (considerant que backgroundSize és un percentatge)
-        const screenDiagonal = Math.sqrt(window.innerWidth * window.innerWidth + window.innerHeight * window.innerHeight)
-        const targetScale = screenDiagonal / 300 // Escala ajustada per ocupar tota la pantalla
+        // Funció d'acceleració (ease-out)
+        const easeOut = 1 - Math.pow(1 - progress, 3)
         
-        const expandAnimate = () => {
-          const elapsed = Date.now() - expandStartTime
-          const progress = Math.min(elapsed / expandDuration, 1)
+        // Creix el logo i el centra
+        const currentScale = startScale + (targetScale - startScale) * easeOut
+        const currentX = startX * (1 - easeOut)
+        const currentY = startY * (1 - easeOut)
+        
+        setLogoScale(currentScale)
+        setLogoPosition({ x: currentX, y: currentY })
+        
+        if (progress < 1) {
+          requestAnimationFrame(expandAnimate)
+        } else {
+          // Guardar dades i navegar
+          setStoredSession(data.nickname, data.socketToken)
+          router.push('/app')
           
-          // Funció d'acceleració (ease-out)
-          const easeOut = 1 - Math.pow(1 - progress, 3)
+          // Guardar dades abans de continuar
+          setStoredSession(data.nickname, data.socketToken)
           
-          // Creix el logo i el centra
-          const currentScale = startScale + (targetScale - startScale) * easeOut
-          const currentX = startX * (1 - easeOut)
-          const currentY = startY * (1 - easeOut)
-          
-          setLogoScale(currentScale)
-          setLogoPosition({ x: currentX, y: currentY })
-          
-          if (progress < 1) {
-            requestAnimationFrame(expandAnimate)
-          } else {
-            // Guardar dades i navegar
-            setStoredSession(data.nickname, data.socketToken)
-            router.push('/app')
+          // Esperar un moment (simular càrrega de l'app) i després reduir el logo
+          setTimeout(() => {
+            setTransitionPhase('complete')
             
-            // Guardar dades abans de continuar
-            setStoredSession(data.nickname, data.socketToken)
+            // Animar el logo perquè torni cap enrere i desaparegui
+            const shrinkDuration = 600
+            const shrinkStartTime = Date.now()
+            const shrinkStartScale = currentScale
+            const shrinkStartX = currentX
+            const shrinkStartY = currentY
             
-            // Esperar un moment (simular càrrega de l'app) i després reduir el logo
-            setTimeout(() => {
-              setTransitionPhase('complete')
+            const shrinkAnimate = () => {
+              const shrinkElapsed = Date.now() - shrinkStartTime
+              const shrinkProgress = Math.min(shrinkElapsed / shrinkDuration, 1)
               
-              // Animar el logo perquè torni cap enrere i desaparegui
-              const shrinkDuration = 600
-              const shrinkStartTime = Date.now()
-              const shrinkStartScale = currentScale
-              const shrinkStartX = currentX
-              const shrinkStartY = currentY
+              // Funció d'acceleració (ease-in)
+              const easeIn = shrinkProgress * shrinkProgress
               
-              const shrinkAnimate = () => {
-                const shrinkElapsed = Date.now() - shrinkStartTime
-                const shrinkProgress = Math.min(shrinkElapsed / shrinkDuration, 1)
-                
-                // Funció d'acceleració (ease-in)
-                const easeIn = shrinkProgress * shrinkProgress
-                
-                // Redueix el logo i el mou cap al centre fins a desaparèixer
-                const shrinkScale = shrinkStartScale * (1 - easeIn)
-                const shrinkX = shrinkStartX * (1 - easeIn)
-                const shrinkY = shrinkStartY * (1 - easeIn)
-                
-                setLogoScale(shrinkScale)
-                setLogoPosition({ x: shrinkX, y: shrinkY })
-                
-                if (shrinkProgress < 1) {
-                  requestAnimationFrame(shrinkAnimate)
-                } else {
-                  // Navegar quan la reducció hagi acabat
-                  setIsTransitioning(false)
-                  router.push('/app')
-                }
+              // Redueix el logo i el mou cap al centre fins a desaparèixer
+              const shrinkScale = shrinkStartScale * (1 - easeIn)
+              const shrinkX = shrinkStartX * (1 - easeIn)
+              const shrinkY = shrinkStartY * (1 - easeIn)
+              
+              setLogoScale(shrinkScale)
+              setLogoPosition({ x: shrinkX, y: shrinkY })
+              
+              if (shrinkProgress < 1) {
+                requestAnimationFrame(shrinkAnimate)
+              } else {
+                // Navegar quan la reducció hagi acabat
+                setIsTransitioning(false)
+                router.push('/app')
               }
-              
-              requestAnimationFrame(shrinkAnimate)
-            }, 300) // Petit delay per simular la càrrega de l'app
-          }
+            }
+            
+            requestAnimationFrame(shrinkAnimate)
+          }, 300) // Petit delay per simular la càrrega de l'app
         }
-        
-        requestAnimationFrame(expandAnimate)
-      } else {
-        setError(data.error || t('auth.error'))
       }
+      
+      requestAnimationFrame(expandAnimate)
     } catch (err) {
       setError(t('auth.connectionError'))
+      loginBusyRef.current = false
+      setLoginLoading(false)
     }
   }
 
@@ -728,14 +738,14 @@ export default function Home() {
           </div>
           <button
             type="submit"
-            disabled={isNewUser && !acceptTerms}
+            disabled={loginLoading || isTransitioning || (isNewUser && !acceptTerms)}
             className={`w-full py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ${
-              isNewUser && !acceptTerms
+              loginLoading || isTransitioning || (isNewUser && !acceptTerms)
                 ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
             }`}
           >
-            {isNewUser ? t('auth.register') : t('auth.enter')}
+            {loginLoading ? t('common.loading') : isNewUser ? t('auth.register') : t('auth.enter')}
           </button>
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />

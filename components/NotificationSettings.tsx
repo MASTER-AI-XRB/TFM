@@ -1,18 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useNotifications } from '@/lib/notifications'
 import { logError } from '@/lib/client-logger'
-
-function urlBase64ToUint8Array(base64: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4)
-  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const raw = atob(b64)
-  const out = new Uint8Array(raw.length)
-  for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i)
-  return out
-}
+import { PUSH_PERMISSION_GRANTED_EVENT } from '@/lib/client-session'
 
 export default function NotificationSettings({ embedded }: { embedded?: boolean } = {}) {
   const [permission, setPermission] = useState<NotificationPermission>('default')
@@ -20,8 +13,8 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
   const [showEnableModal, setShowEnableModal] = useState(false)
   const [showPreferencesModal, setShowPreferencesModal] = useState(false)
   const [isPWA, setIsPWA] = useState(false)
+  const [isNotificationSupported, setIsNotificationSupported] = useState(false)
   const [nickname, setNickname] = useState<string | null>(null)
-  const [prefsLoading, setPrefsLoading] = useState(false)
   const [prefsSaving, setPrefsSaving] = useState(false)
   const [prefsError, setPrefsError] = useState<string | null>(null)
   const [prefsSaved, setPrefsSaved] = useState(false)
@@ -31,9 +24,35 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
   const { t } = useI18n()
   const { showSuccess, showError } = useNotifications()
 
+  const {
+    data: prefs,
+    isLoading: prefsLoading,
+    error: prefsFetchError,
+    mutate: mutatePrefs,
+  } = useSWR<{
+    receiveAll?: boolean
+    allowedNicknames?: string[]
+    allowedProductKeywords?: string[]
+  }>(nickname ? '/api/notification-preferences' : null)
+
+  useEffect(() => {
+    if (!prefs) return
+    setReceiveAll(prefs.receiveAll !== false)
+    setAllowedNicknamesInput((prefs.allowedNicknames || []).join(', '))
+    setAllowedKeywordsInput((prefs.allowedProductKeywords || []).join(', '))
+  }, [prefs])
+
+  useEffect(() => {
+    if (!prefsFetchError) return
+    logError('Error carregant preferències:', prefsFetchError)
+    setPrefsError(t('notifications.preferencesError') || 'Error carregant preferències')
+  }, [prefsFetchError, t])
+
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if ('Notification' in window && window.Notification) {
+    const supported = 'Notification' in window && !!window.Notification
+    setIsNotificationSupported(supported)
+    if (supported) {
       setPermission(window.Notification.permission)
 
       // Detectar si és una PWA/webapp
@@ -45,29 +64,6 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
     }
     setNickname(localStorage.getItem('nickname'))
   }, [])
-
-  useEffect(() => {
-    if (!nickname) return
-    setPrefsLoading(true)
-    setPrefsError(null)
-    fetch('/api/notification-preferences')
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error('Error carregant preferències')
-        }
-        return res.json()
-      })
-      .then((data) => {
-        setReceiveAll(data.receiveAll !== false)
-        setAllowedNicknamesInput((data.allowedNicknames || []).join(', '))
-        setAllowedKeywordsInput((data.allowedProductKeywords || []).join(', '))
-      })
-      .catch((error) => {
-        logError('Error carregant preferències:', error)
-        setPrefsError(t('notifications.preferencesError') || 'Error carregant preferències')
-      })
-      .finally(() => setPrefsLoading(false))
-  }, [nickname, t])
 
   // Actualitzar l'estat quan canvia el permís (per si canvia des de fora)
   useEffect(() => {
@@ -89,42 +85,6 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
     const interval = setInterval(checkPermission, 1000)
     return () => clearInterval(interval)
   }, [showDisableModal, showEnableModal])
-
-  const ensurePushSubscribed = useCallback(async () => {
-    if (typeof window === 'undefined' || !nickname) return
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-    if (window.Notification?.permission !== 'granted') return
-    try {
-      const vapidRes = await fetch('/api/notifications/vapid-public-key')
-      if (!vapidRes.ok) return
-      const { publicKey } = await vapidRes.json()
-      if (!publicKey) return
-      const reg = await navigator.serviceWorker.register('/push-sw.js', { scope: '/' })
-      await reg.update()
-      let sub = await reg.pushManager.getSubscription()
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
-        })
-      }
-      if (!sub) return
-      const res = await fetch('/api/notifications/push-subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON() }),
-        credentials: 'same-origin',
-      })
-      if (!res.ok) logError('push-subscribe failed', res.status)
-    } catch (e) {
-      logError('ensurePushSubscribed', e)
-    }
-  }, [nickname])
-
-  useEffect(() => {
-    if (permission !== 'granted' || !nickname) return
-    ensurePushSubscribed()
-  }, [permission, nickname, ensurePushSubscribed])
 
   const handleToggleNotifications = async () => {
     if (typeof window === 'undefined') {
@@ -157,11 +117,11 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
           setPermission(newPermission)
           
           if (newPermission === 'granted') {
+            window.dispatchEvent(new Event(PUSH_PERMISSION_GRANTED_EVENT))
             showSuccess(
               t('notifications.notificationsEnabled') || 'Notificacions activades',
               t('notifications.notificationsEnabledMessage') || 'Ara rebràs notificacions del navegador.'
             )
-            ensurePushSubscribed()
           }
           // Si continua en 'denied' o 'default', no mostrar cap missatge
         } catch (error) {
@@ -174,9 +134,6 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
       logError('Error general gestionant notificacions:', error)
     }
   }
-
-  const isNotificationSupported =
-    typeof window !== 'undefined' && 'Notification' in window && window.Notification
 
   return (
     <>
@@ -390,10 +347,14 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
                 </label>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    htmlFor="notif-allowed-users"
+                  >
                     {t('notifications.allowedUsersLabel') || 'Usuaris permesos'}
                   </label>
                   <input
+                    id="notif-allowed-users"
                     type="text"
                     value={allowedNicknamesInput}
                     onChange={(e) => setAllowedNicknamesInput(e.target.value)}
@@ -404,10 +365,14 @@ export default function NotificationSettings({ embedded }: { embedded?: boolean 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    htmlFor="notif-allowed-products"
+                  >
                     {t('notifications.allowedProductsLabel') || 'Tipus de producte'}
                   </label>
                   <input
+                    id="notif-allowed-products"
                     type="text"
                     value={allowedKeywordsInput}
                     onChange={(e) => setAllowedKeywordsInput(e.target.value)}

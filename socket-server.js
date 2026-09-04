@@ -61,6 +61,15 @@ const parseJsonArray = (value) => {
   }
 }
 
+const mapTruthy = (items, transform) => {
+  const result = []
+  for (const item of items) {
+    const value = transform(item)
+    if (value) result.push(value)
+  }
+  return result
+}
+
 const shouldSendNotification = async (targetUserId, payload) => {
   const preference = await prisma.notificationPreference.findUnique({
     where: { userId: targetUserId },
@@ -74,12 +83,12 @@ const shouldSendNotification = async (targetUserId, payload) => {
   }
   if (preference.receiveAll) return true
 
-  const allowedNicknames = parseJsonArray(preference.allowedNicknames)
-    .map((n) => String(n).toLowerCase())
-    .filter(Boolean)
-  const allowedKeywords = parseJsonArray(preference.allowedProductKeywords)
-    .map((k) => String(k).toLowerCase())
-    .filter(Boolean)
+  const allowedNicknames = mapTruthy(parseJsonArray(preference.allowedNicknames), (n) =>
+    String(n).toLowerCase()
+  )
+  const allowedKeywords = mapTruthy(parseJsonArray(preference.allowedProductKeywords), (k) =>
+    String(k).toLowerCase()
+  )
   const actorNickname = String(payload.actorNickname || '').toLowerCase()
   const productName = String(payload.productName || payload.productType || '').toLowerCase()
   const matchesNickname = actorNickname && allowedNicknames.includes(actorNickname)

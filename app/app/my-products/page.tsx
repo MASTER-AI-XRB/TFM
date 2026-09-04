@@ -4,11 +4,20 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
 import TranslateButton from '@/components/TranslateButton'
-import { getStoredNickname, getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
+import { getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
+import { useStoredNickname } from '@/lib/use-stored-nickname'
 import { logError } from '@/lib/client-logger'
+import {
+  canReserveProduct,
+  canUnreserveProduct,
+  getFilletBoxShadow,
+  getFilletClass,
+  isReservedByOwner,
+} from '@/lib/product-fillets'
 
 interface Product {
   id: string
@@ -23,117 +32,73 @@ interface Product {
 }
 
 export default function MyProductsPage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [refreshSpinning, setRefreshSpinning] = useState(false)
   const router = useRouter()
-  const nickname = getStoredNickname()
+  const nickname = useStoredNickname()
   const { t } = useI18n()
   const { theme } = useTheme()
+
+  const {
+    data: products = [],
+    isLoading: loading,
+    mutate,
+  } = useSWR<Product[]>(nickname ? '/api/products/my' : null, {
+    revalidateOnFocus: true,
+  })
 
   useEffect(() => {
     setViewMode(getStoredViewMode())
   }, [])
 
   useEffect(() => {
-    if (!nickname) {
-      router.push('/')
-      return
-    }
-    fetchMyProducts()
-  }, [router, nickname])
+    if (nickname === null) return
+    if (!nickname) router.push('/')
+  }, [nickname, router])
 
   useEffect(() => {
     const onProductState = (e: Event) => {
       const { productId, reserved, reservedBy, prestec } = (e as CustomEvent).detail || {}
       if (!productId) return
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id !== productId
-            ? p
-            : {
-                ...p,
-                ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
-                ...(typeof prestec === 'boolean' && { prestec }),
-              }
-        )
+      void mutate(
+        (current) =>
+          current?.map((p) =>
+            p.id !== productId
+              ? p
+              : {
+                  ...p,
+                  ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
+                  ...(typeof prestec === 'boolean' && { prestec }),
+                }
+          ),
+        { revalidate: false }
       )
     }
     window.addEventListener('product-state', onProductState)
     return () => window.removeEventListener('product-state', onProductState)
-  }, [])
+  }, [mutate])
 
-  // Refetch quan la pestanya torna a ser visible (fallback si el WebSocket no ha arribat)
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') fetchMyProducts()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [])
-
-  const fetchMyProducts = async () => {
-    try {
-      const response = await fetch('/api/products/my', { cache: 'no-store' })
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
-      }
-    } catch (error) {
-      logError('Error carregant els meus productes:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const canReserve = (p: Product) =>
-    nickname === p.user.nickname && !p.reserved
-  const canUnreserve = (p: Product) =>
-    p.reserved &&
-    (nickname === (p.reservedBy?.nickname ?? '') ||
-      (nickname === p.user.nickname && !p.reservedBy))
-  const isReservedByOwner = (p: Product) =>
-    !!p.reserved && p.reservedBy?.nickname === p.user.nickname
-  /** Només el propietari veu els filets verd (prèstec) i blau (reserva del titular); el groc és per qui ha reservat (DM). */
-  const isOwner = (p: Product) => !!nickname && nickname === p.user.nickname
-  const showOwnerReservedFillet = (p: Product) => !!p.reserved && p.reservedBy?.nickname === p.user.nickname
-  const showDmFillet = (p: Product) =>
-    !!nickname && !!p.reserved && p.reservedBy?.nickname === nickname && p.reservedBy?.nickname !== p.user.nickname
-  const getFilletClass = (p: Product) =>
-    p.prestec && isOwner(p)
-      ? 'border-[6px] border-green-500'
-      : showOwnerReservedFillet(p) && isOwner(p)
-        ? 'border-[6px] border-blue-500'
-        : showDmFillet(p)
-          ? 'border-[6px] border-yellow-500'
-          : ''
-  const getFilletBoxShadow = (p: Product) =>
-    p.prestec && isOwner(p)
-      ? 'inset 0 0 0 6px #22c55e'
-      : showOwnerReservedFillet(p) && isOwner(p)
-        ? 'inset 0 0 0 6px #3b82f6'
-        : showDmFillet(p)
-          ? 'inset 0 0 0 6px #eab308'
-          : ''
+  const refreshMyProducts = () => mutate(undefined, { revalidate: true })
 
   const toggleReserved = async (productId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     const product = products.find((p) => p.id === productId)
-    if (!product || (!canReserve(product) && !canUnreserve(product))) return
+    if (!product || (!canReserveProduct(product, nickname) && !canUnreserveProduct(product, nickname))) return
     const nextReserved = !product.reserved
 
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId
-          ? {
-              ...p,
-              reserved: nextReserved,
-              reservedBy: nextReserved && nickname ? { nickname } : null,
-            }
-          : p
-      )
+    void mutate(
+      (prev) =>
+        prev?.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                reserved: nextReserved,
+                reservedBy: nextReserved && nickname ? { nickname } : null,
+              }
+            : p
+        ),
+      { revalidate: false }
     )
 
     try {
@@ -143,22 +108,26 @@ export default function MyProductsPage() {
         body: JSON.stringify({ reserved: nextReserved }),
       })
       if (!response.ok) {
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.id === productId
-              ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
-              : p
-          )
+        void mutate(
+          (prev) =>
+            prev?.map((p) =>
+              p.id === productId
+                ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
+                : p
+            ),
+          { revalidate: false }
         )
         logError('Error actualitzant reserva:', await response.json().catch(() => ({})))
       }
     } catch (error) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === productId
-            ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
-            : p
-        )
+      void mutate(
+        (prev) =>
+          prev?.map((p) =>
+            p.id === productId
+              ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
+              : p
+          ),
+        { revalidate: false }
       )
       logError('Error actualitzant reserva:', error)
     }
@@ -177,7 +146,7 @@ export default function MyProductsPage() {
         body: JSON.stringify({ prestec: !product.prestec }),
       })
       if (response.ok) {
-        await fetchMyProducts()
+        await refreshMyProducts()
       }
     } catch (error) {
       logError('Error actualitzant préstec:', error)
@@ -194,7 +163,7 @@ export default function MyProductsPage() {
         method: 'DELETE',
       })
       if (response.ok) {
-        await fetchMyProducts()
+        await refreshMyProducts()
       }
     } catch (error) {
       logError('Error eliminant producte:', error)
@@ -257,9 +226,8 @@ export default function MyProductsPage() {
           <button
             onClick={() => {
               setRefreshSpinning(true)
-              fetchMyProducts().finally(() => {
-                setTimeout(() => setRefreshSpinning(false), 500)
-              })
+              refreshMyProducts()
+              setTimeout(() => setRefreshSpinning(false), 500)
             }}
             className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
             title={t('products.refresh')}
@@ -302,13 +270,15 @@ export default function MyProductsPage() {
                 <Link
                 key={product.id}
                 href={`/app/products/${product.id}`}
-                className={`relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group ${getFilletClass(product)}`}
+                className={`relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group ${getFilletClass(product, nickname)}`}
               >
                 {product.images && product.images.length > 0 ? (
-                  <img
+                  <Image
                     src={product.images[0]}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 16vw"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -323,7 +293,7 @@ export default function MyProductsPage() {
                 </div>
                 {/* Botons de reservat, préstec i eliminar */}
                 <div className="absolute top-1 right-1 flex flex-col gap-1">
-                  {canUnreserve(product) ? (
+                  {canUnreserveProduct(product, nickname) ? (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -350,7 +320,7 @@ export default function MyProductsPage() {
                         </svg>
                       )}
                     </button>
-                  ) : nickname === product.user.nickname && canReserve(product) ? null : (
+                  ) : nickname === product.user.nickname && canReserveProduct(product, nickname) ? null : (
                     <div
                       className={`rounded-full p-2 shadow-md ${
                         product.reserved
@@ -372,7 +342,7 @@ export default function MyProductsPage() {
                       )}
                     </div>
                   )}
-                  {canReserve(product) && (
+                  {canReserveProduct(product, nickname) && (
                     <button
                       onClick={(e) => {
                         e.preventDefault()
@@ -456,21 +426,23 @@ export default function MyProductsPage() {
               {product.images && product.images.length > 0 && (
                 <div className="h-48 bg-gray-200 dark:bg-gray-700 relative flex-shrink-0">
                   <Link href={`/app/products/${product.id}`} className="relative block w-full h-full">
-                    <img
+                    <Image
                       src={product.images[0]}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
-                    {getFilletBoxShadow(product) ? (
+                    {getFilletBoxShadow(product, nickname) ? (
                       <span
                         className="absolute inset-0 pointer-events-none block"
-                        style={{ boxShadow: getFilletBoxShadow(product) }}
+                        style={{ boxShadow: getFilletBoxShadow(product, nickname) }}
                         aria-hidden
                       />
                     ) : null}
                   </Link>
                   <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
-                    {canUnreserve(product) ? (
+                    {canUnreserveProduct(product, nickname) ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -497,7 +469,7 @@ export default function MyProductsPage() {
                           </svg>
                         )}
                       </button>
-                    ) : nickname === product.user.nickname && canReserve(product) ? null : (
+                    ) : nickname === product.user.nickname && canReserveProduct(product, nickname) ? null : (
                       <div
                         className={`rounded-full p-2 shadow-md ${
                           product.reserved
@@ -519,7 +491,7 @@ export default function MyProductsPage() {
                         )}
                       </div>
                     )}
-                    {canReserve(product) && (
+                    {canReserveProduct(product, nickname) && (
                       <button
                         onClick={(e) => {
                           e.preventDefault()

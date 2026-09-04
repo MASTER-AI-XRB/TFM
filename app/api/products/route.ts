@@ -86,26 +86,31 @@ export async function POST(request: NextRequest) {
       )
       // Fallback a sistema local (no funcionarà a Vercel però sí localment)
       try {
-        const { writeFile, mkdir } = await import('fs/promises')
-        const { join } = await import('path')
-        const { existsSync } = await import('fs')
+        const [{ writeFile, mkdir }, { join }, { existsSync }] = await Promise.all([
+          import('fs/promises'),
+          import('path'),
+          import('fs'),
+        ])
         
         const uploadsDir = join(process.cwd(), 'public', 'uploads')
         if (!existsSync(uploadsDir)) {
           await mkdir(uploadsDir, { recursive: true })
         }
 
-        for (const image of images) {
-          const bytes = await image.arrayBuffer()
-          const buffer = Buffer.from(bytes)
-          
-          const sanitizedName = sanitizeString(image.name, 100)
-            .replace(/[^a-zA-Z0-9.-]/g, '_')
-          const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
-          const filepath = join(uploadsDir, filename)
-          await writeFile(filepath, buffer)
-          imagePaths.push(`/uploads/${filename}`)
-        }
+        const localPaths = await Promise.all(
+          images.map(async (image) => {
+            const bytes = await image.arrayBuffer()
+            const buffer = Buffer.from(bytes)
+
+            const sanitizedName = sanitizeString(image.name, 100)
+              .replace(/[^a-zA-Z0-9.-]/g, '_')
+            const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
+            const filepath = join(uploadsDir, filename)
+            await writeFile(filepath, buffer)
+            return `/uploads/${filename}`
+          })
+        )
+        imagePaths.push(...localPaths)
       } catch (fallbackError) {
         logError('Error amb fallback local:', fallbackError)
         return apiError(
@@ -115,34 +120,34 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Usar Vercel Blob Storage
-      for (const image of images) {
-        try {
-          const bytes = await image.arrayBuffer()
-          const buffer = Buffer.from(bytes)
-          
-          // Sanititzar el nom del fitxer
-          const sanitizedName = sanitizeString(image.name, 100)
-            .replace(/[^a-zA-Z0-9.-]/g, '_')
-          const filename = `product-${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
-          
-          // Pujar a Vercel Blob
-          const blob = await put(filename, buffer, {
-            access: 'public',
-            addRandomSuffix: true,
-            contentType: image.type,
-          })
-          
-          imagePaths.push(blob.url)
-        } catch (blobError) {
-          logError('Error pujant imatge a Blob:', blobError)
+      try {
+        const blobUrls = await Promise.all(
+          images.map(async (image) => {
+            const bytes = await image.arrayBuffer()
+            const buffer = Buffer.from(bytes)
 
-          // Verificar si és un error d'autenticació amb Blob
-          const errorMessage = blobError instanceof Error && blobError.message.includes('token')
-            ? 'Error d\'autenticació amb Vercel Blob. Verifica BLOB_READ_WRITE_TOKEN.'
-            : 'Error al pujar imatges a Vercel Blob'
-          
-          return apiError(errorMessage, 500)
-        }
+            const sanitizedName = sanitizeString(image.name, 100)
+              .replace(/[^a-zA-Z0-9.-]/g, '_')
+            const filename = `product-${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
+
+            const blob = await put(filename, buffer, {
+              access: 'public',
+              addRandomSuffix: true,
+              contentType: image.type,
+            })
+
+            return blob.url
+          })
+        )
+        imagePaths.push(...blobUrls)
+      } catch (blobError) {
+        logError('Error pujant imatge a Blob:', blobError)
+
+        const errorMessage = blobError instanceof Error && blobError.message.includes('token')
+          ? 'Error d\'autenticació amb Vercel Blob. Verifica BLOB_READ_WRITE_TOKEN.'
+          : 'Error al pujar imatges a Vercel Blob'
+
+        return apiError(errorMessage, 500)
       }
     }
 

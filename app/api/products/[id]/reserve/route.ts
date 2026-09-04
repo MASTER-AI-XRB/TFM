@@ -5,6 +5,7 @@ import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logInfo, logWarn } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { getSocketServerUrl } from '@/lib/socket'
+import { postSocketNotify } from '@/lib/notify-fetch'
 
 export async function PATCH(
   request: NextRequest,
@@ -96,43 +97,31 @@ export async function PATCH(
             logInfo(`Notificacions reserva: enviant a ${favorites.length} usuari(s) amb el producte als preferits.`)
             await Promise.all(
               favorites.map((fav) =>
-                fetch(`${socketUrl}/notify`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-notify-token': notifySecret,
+                postSocketNotify(
+                  `${socketUrl}/notify`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'x-notify-token': notifySecret,
+                    },
+                    body: JSON.stringify({
+                      targetUserId: fav.userId,
+                      type: 'info',
+                      titleKey: 'notifications.productReserved',
+                      messageKey: 'notifications.productReservedFromFavoritesMessage',
+                      params: { nickname: actorNickname, productName },
+                      title: 'Producte reservat',
+                      message: `${actorNickname} ha reservat un producte dels teus preferits: ${productName}`,
+                      notificationType: 'reserved_favorite',
+                      ownerReserve: true,
+                      actorNickname,
+                      productName,
+                      action: { labelKey: 'notifications.viewProduct', label: 'Veure producte', url: `/app/products/${productId}` },
+                    }),
                   },
-                  body: JSON.stringify({
-                    targetUserId: fav.userId,
-                    type: 'info',
-                    titleKey: 'notifications.productReserved',
-                    messageKey: 'notifications.productReservedFromFavoritesMessage',
-                    params: { nickname: actorNickname, productName },
-                    title: 'Producte reservat',
-                    message: `${actorNickname} ha reservat un producte dels teus preferits: ${productName}`,
-                    notificationType: 'reserved_favorite',
-                    ownerReserve: true,
-                    actorNickname,
-                    productName,
-                    action: { labelKey: 'notifications.viewProduct', label: 'Veure producte', url: `/app/products/${productId}` },
-                  }),
-                }).then(async (r) => {
-                  if (r.ok || r.status === 404) return
-                  const body = await r.text().catch(() => '')
-                  const msg = r.status === 401
-                    ? 'Revisa que AUTH_SECRET (o NOTIFY_SECRET) sigui el mateix a Vercel i Railway.'
-                    : (() => {
-                        try {
-                          const d = JSON.parse(body) as { error?: string }
-                          return (d?.error ?? body) || String(r.status)
-                        } catch {
-                          return body || String(r.status)
-                        }
-                      })()
-                  logWarn('Notify reserva-preferits fallit:', { status: r.status, targetUserId: fav.userId, detail: msg })
-                }).catch((err) => {
-                  logWarn('Notify reserva-preferits error xarxa:', { targetUserId: fav.userId, error: String(err?.message || err) })
-                })
+                  { targetUserId: fav.userId, label: 'Notify reserva-preferits' }
+                )
               )
             )
           }
@@ -209,45 +198,31 @@ export async function PATCH(
             .then((favorites) =>
               Promise.all(
                 favorites.map((fav) =>
-                  fetch(`${socketUrl}/notify`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'x-notify-token': notifySecret,
+                  postSocketNotify(
+                    `${socketUrl}/notify`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'x-notify-token': notifySecret,
+                      },
+                      body: JSON.stringify({
+                        targetUserId: fav.userId,
+                        type: 'info',
+                        titleKey: 'notifications.productUnreservedFromFavorites',
+                        messageKey: 'notifications.productUnreservedFromFavoritesMessage',
+                        params: { nickname, productName: product.name },
+                        title: 'Cancel·lada la reserva',
+                        message: `${nickname} ha cancel·lat la reserva d'un producte dels teus preferits: ${product.name}`,
+                        notificationType: 'unreserved_favorite',
+                        ownerReserve: wasOwnerReserve,
+                        actorNickname: nickname,
+                        productName: product.name,
+                        action: { labelKey: 'notifications.viewProduct', label: 'Veure producte', url: `/app/products/${resolvedParams.id}` },
+                      }),
                     },
-                    body: JSON.stringify({
-                      targetUserId: fav.userId,
-                      type: 'info',
-                      titleKey: 'notifications.productUnreservedFromFavorites',
-                      messageKey: 'notifications.productUnreservedFromFavoritesMessage',
-                      params: { nickname, productName: product.name },
-                      title: 'Cancel·lada la reserva',
-                      message: `${nickname} ha cancel·lat la reserva d'un producte dels teus preferits: ${product.name}`,
-                      notificationType: 'unreserved_favorite',
-                      ownerReserve: wasOwnerReserve,
-                      actorNickname: nickname,
-                      productName: product.name,
-                      action: { labelKey: 'notifications.viewProduct', label: 'Veure producte', url: `/app/products/${resolvedParams.id}` },
-                    }),
-                  })
-                    .then(async (r) => {
-                      if (r.ok || r.status === 404) return
-                      const body = await r.text().catch(() => '')
-                      const msg = r.status === 401
-                        ? 'Revisa AUTH_SECRET/NOTIFY_SECRET (mateix a Vercel i Railway).'
-                        : (() => {
-                            try {
-                              const d = JSON.parse(body) as { error?: string }
-                              return (d?.error ?? body) || String(r.status)
-                            } catch {
-                              return body || String(r.status)
-                            }
-                          })()
-                      logWarn('Notify desreserva-preferits fallit:', { status: r.status, targetUserId: fav.userId, detail: msg })
-                    })
-                    .catch((err) => {
-                      logWarn('Notify desreserva-preferits error xarxa:', { targetUserId: fav.userId, error: String(err?.message || err) })
-                    })
+                    { targetUserId: fav.userId, label: 'Notify desreserva-preferits' }
+                  )
                 )
               )
             )

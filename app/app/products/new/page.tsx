@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useI18n } from '@/lib/i18n'
 
 export default function NewProductPage() {
@@ -133,16 +134,20 @@ export default function NewProductPage() {
             {previews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {previews.map((preview, index) => (
-                  <div key={index} className="relative">
-                    <img
+                  <div key={index} className="relative h-48">
+                    <Image
                       src={preview}
                       alt={`Preview ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg"
+                      fill
+                      unoptimized
+                      className="object-cover rounded-lg"
+                      sizes="(max-width: 640px) 50vw, 25vw"
                     />
                     <button
                       type="button"
+                      aria-label={t('newProduct.removeImage') || `Eliminar imatge ${index + 1}`}
                       onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 z-10"
                     >
                       ×
                     </button>

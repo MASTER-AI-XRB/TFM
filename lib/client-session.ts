@@ -1,5 +1,13 @@
 const isBrowser = typeof window !== 'undefined'
 
+export const SESSION_CHANGE_EVENT = 'xarxa-session-change'
+export const PUSH_PERMISSION_GRANTED_EVENT = 'xarxa-push-permission-granted'
+
+export function notifyStoredSessionChange() {
+  if (!isBrowser) return
+  window.dispatchEvent(new Event(SESSION_CHANGE_EVENT))
+}
+
 export const getStoredNickname = () =>
   isBrowser ? window.localStorage.getItem('nickname') : null
 
@@ -14,12 +22,14 @@ export const setStoredSession = (nickname: string, socketToken?: string | null) 
   } else {
     window.localStorage.removeItem('socketToken')
   }
+  notifyStoredSessionChange()
 }
 
 export const clearStoredSession = () => {
   if (!isBrowser) return
   window.localStorage.removeItem('nickname')
   window.localStorage.removeItem('socketToken')
+  notifyStoredSessionChange()
 }
 
 const VIEW_MODE_KEY = 'xarxa_products_view_mode'

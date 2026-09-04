@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
-import { getStoredNickname } from '@/lib/client-session'
+import { useStoredNickname } from '@/lib/use-stored-nickname'
 
 interface Product {
   id: string
@@ -15,12 +17,9 @@ interface Product {
   }
 }
 
-export default function EditProductPage({
-  params,
-}: {
-  params: Promise<{ id: string }> | { id: string }
-}) {
-  const [productId, setProductId] = useState<string | null>(null)
+export default function EditProductPage() {
+  const routeParams = useParams<{ id: string }>()
+  const productId = typeof routeParams?.id === 'string' ? routeParams.id : null
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [existingImages, setExistingImages] = useState<string[]>([])
@@ -30,46 +29,31 @@ export default function EditProductPage({
   const [error, setError] = useState('')
   const router = useRouter()
   const { t } = useI18n()
+  const nickname = useStoredNickname()
 
   useEffect(() => {
-    const getParams = async () => {
-      const resolvedParams = params instanceof Promise ? await params : params
-      setProductId(resolvedParams.id)
-    }
-    getParams()
-  }, [params])
+    if (nickname === null) return
+    if (!nickname) router.push('/')
+  }, [nickname, router])
+
+  const { data: product, error } = useSWR<Product>(
+    productId && nickname ? `/api/products/${productId}` : null
+  )
 
   useEffect(() => {
-    if (!productId) return
-
-    const nickname = getStoredNickname()
-    if (!nickname) {
-      router.push('/')
+    if (error) {
+      router.push('/app')
       return
     }
-
-    const fetchProduct = async () => {
-      try {
-        const response = await fetch(`/api/products/${productId}`)
-        if (!response.ok) {
-          router.push('/app')
-          return
-        }
-        const data = (await response.json()) as Product
-        if (data.user?.nickname !== nickname) {
-          router.push('/app')
-          return
-        }
-        setName(data.name)
-        setDescription(data.description || '')
-        setExistingImages(Array.isArray(data.images) ? data.images : [])
-      } catch (err) {
-        router.push('/app')
-      }
+    if (!product || !nickname) return
+    if (product.user?.nickname !== nickname) {
+      router.push('/app')
+      return
     }
-
-    fetchProduct()
-  }, [productId, router])
+    setName(product.name)
+    setDescription(product.description || '')
+    setExistingImages(Array.isArray(product.images) ? product.images : [])
+  }, [product, nickname, error, router])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
@@ -210,32 +194,37 @@ export default function EditProductPage({
             {(existingImages.length > 0 || newPreviews.length > 0) && (
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {existingImages.map((image, index) => (
-                  <div key={`existing-${index}`} className="relative">
-                    <img
+                  <div key={`existing-${index}`} className="relative h-48">
+                    <Image
                       src={image}
                       alt={`Existing ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg"
+                      fill
+                      className="object-cover rounded-lg"
+                      sizes="(max-width: 640px) 50vw, 25vw"
                     />
                     <button
                       type="button"
                       onClick={() => removeExistingImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 z-10"
                     >
                       ×
                     </button>
                   </div>
                 ))}
                 {newPreviews.map((preview, index) => (
-                  <div key={`new-${index}`} className="relative">
-                    <img
+                  <div key={`new-${index}`} className="relative h-48">
+                    <Image
                       src={preview}
                       alt={`Preview ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg"
+                      fill
+                      unoptimized
+                      className="object-cover rounded-lg"
+                      sizes="(max-width: 640px) 50vw, 25vw"
                     />
                     <button
                       type="button"
                       onClick={() => removeNewImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600"
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 z-10"
                     >
                       ×
                     </button>

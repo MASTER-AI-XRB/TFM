@@ -10,11 +10,13 @@ import LanguageSelector from '@/components/LanguageSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AppSocketProvider } from '@/components/AppSocketProvider'
 import { clearStoredSession, getStoredNickname, setStoredSession } from '@/lib/client-session'
+import { useStoredNickname } from '@/lib/use-stored-nickname'
 import DevConsole from '@/components/DevConsole'
 import { NavNotificationsBell } from '@/components/NavNotificationsBell'
 import { AppInfoPopup } from '@/components/AppInfoPopup'
 import { MobileNavCarousel } from '@/components/MobileNavCarousel'
 import { OnboardingProvider, useOnboarding } from '@/lib/onboarding-context'
+import { useSocketTokenMutation } from '@/lib/use-socket-token'
 
 export default function AppLayout({
   children,
@@ -24,6 +26,7 @@ export default function AppLayout({
   const [nickname, setNickname] = useState<string | null>(null)
   const [socketReady, setSocketReady] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const storedNickname = useStoredNickname()
   const router = useRouter()
   const pathname = usePathname()
   const sessionHook = useSession()
@@ -31,9 +34,31 @@ export default function AppLayout({
   const { t } = useI18n()
   const initialSyncDone = useRef(false)
   const firstFetchDone = useRef(false)
-  const redirectToLoginDone = useRef(false)
+  const { trigger: fetchSocketToken } = useSocketTokenMutation()
 
   useEffect(() => {
+    let cancelled = false
+
+    const applyTokenData = (data: {
+      nickname?: string
+      socketToken?: string
+      needsNickname?: boolean
+    }) => {
+      if (cancelled) return
+      if (data?.needsNickname) {
+        router.push('/app/complete-profile')
+        return
+      }
+      if (data?.nickname && data?.socketToken) {
+        setStoredSession(data.nickname, data.socketToken)
+        setNickname(data.nickname)
+        setSocketReady(true)
+        return
+      }
+      firstFetchDone.current = false
+      router.push('/')
+    }
+
     const savedNickname = getStoredNickname()
     if (savedNickname) {
       if (!initialSyncDone.current) {
@@ -41,56 +66,40 @@ export default function AppLayout({
         setNickname(savedNickname)
         setSocketReady(true)
       }
-      return
-    }
-    initialSyncDone.current = true
-    if (pathname === '/app/complete-profile') return
-    if (status === 'loading') return
-    if (!session) {
-      router.push('/')
-      return
-    }
-    if (firstFetchDone.current) return
-    firstFetchDone.current = true
-    const tryFetchToken = (isRetry?: boolean) => {
-      fetch('/api/auth/socket-token')
-        .then(async (response) => {
-          const data = await response.json().catch(() => ({}))
-          if (response.status === 401) {
-            if (!isRetry) {
-              setTimeout(() => tryFetchToken(true), 800)
-              return
+    } else {
+      initialSyncDone.current = true
+      if (
+        pathname !== '/app/complete-profile' &&
+        status !== 'loading' &&
+        session &&
+        !firstFetchDone.current
+      ) {
+        firstFetchDone.current = true
+        void fetchSocketToken()
+          .then(applyTokenData)
+          .catch(() => {
+            if (!cancelled) {
+              firstFetchDone.current = false
+              router.push('/')
             }
-            firstFetchDone.current = false
-            router.push('/')
-            return
-          }
-          if (!response.ok) {
-            firstFetchDone.current = false
-            router.push('/')
-            return
-          }
-          if (data?.needsNickname) {
-            router.push('/app/complete-profile')
-            return
-          }
-          if (data?.nickname && data?.socketToken) {
-            setStoredSession(data.nickname, data.socketToken)
-            setNickname(data.nickname)
-            setSocketReady(true)
-            return
-          }
-          firstFetchDone.current = false
-          router.push('/')
-        })
-        .catch(() => {
-          firstFetchDone.current = false
-          router.push('/')
-        })
+          })
+      } else if (!session && status !== 'loading' && pathname !== '/app/complete-profile') {
+        router.push('/')
+      }
     }
-    tryFetchToken()
+
+    return () => {
+      cancelled = true
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- session?.user?.id evita bucle quan useSession retorna nova referència
-  }, [router, pathname, status, session?.user?.id])
+  }, [router, pathname, status, session?.user?.id, fetchSocketToken])
+
+  useEffect(() => {
+    if (nickname || pathname === '/app/complete-profile' || storedNickname) return
+    if (status !== 'loading' && !session) {
+      router.push('/')
+    }
+  }, [nickname, pathname, storedNickname, status, session, router])
 
   // Refrescar token del socket quan l’usuari ja tenia nickname a localStorage (token pot estar caducat)
 
@@ -108,19 +117,12 @@ export default function AppLayout({
       return <main>{children}</main>
     }
     // Si hi ha nickname a localStorage, l’effect el posarà; no redirigir abans (evita bucle / ↔ /app)
-    if (getStoredNickname()) {
+    if (storedNickname) {
       return (
         <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
           <p className="text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
         </main>
       )
-    }
-    if (status !== 'loading' && !session) {
-      if (!redirectToLoginDone.current) {
-        redirectToLoginDone.current = true
-        router.push('/')
-      }
-      return null
     }
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
@@ -162,7 +164,7 @@ export default function AppLayout({
             >
               <Link
                 href="/app"
-                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
+                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-[opacity,color,background-color,transform,box-shadow] duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
                 title={t('nav.products')}
                 aria-label={t('nav.products')}
               >
@@ -172,7 +174,7 @@ export default function AppLayout({
               </Link>
               <Link
                 href="/app/favorites"
-                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
+                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-[opacity,color,background-color,transform,box-shadow] duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
                 title={t('nav.favorites')}
                 aria-label={t('nav.favorites')}
               >
@@ -182,7 +184,7 @@ export default function AppLayout({
               </Link>
               <Link
                 href="/app/my-products"
-                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
+                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-[opacity,color,background-color,transform,box-shadow] duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
                 title={t('nav.myProducts')}
                 aria-label={t('nav.myProducts')}
               >
@@ -192,7 +194,7 @@ export default function AppLayout({
               </Link>
               <Link
                 href="/app/chat"
-                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
+                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-[opacity,color,background-color,transform,box-shadow] duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
                 title={t('nav.chat')}
                 aria-label={t('nav.chat')}
               >
@@ -202,7 +204,7 @@ export default function AppLayout({
               </Link>
               <Link
                 href="/app/configuracio"
-                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
+                className="group flex items-center justify-center rounded-lg p-2 text-gray-500 dark:text-gray-400 opacity-70 hover:opacity-100 hover:text-blue-600 dark:hover:text-blue-400 transition-[opacity,color,background-color,transform,box-shadow] duration-200 ease-out hover:scale-110 hover:bg-gray-100/80 dark:hover:bg-gray-700/50 hover:shadow-[0_0_18px_rgba(59,130,246,0.4)] dark:hover:shadow-[0_0_18px_rgba(96,165,250,0.35)]"
                 title={t('nav.settings')}
                 aria-label={t('nav.settings')}
               >

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '@/lib/notifications'
 import { useI18n } from '@/lib/i18n'
@@ -13,14 +14,14 @@ function NotificationTypeIcon({ notificationType, ownerReserve }: { notification
   if (notificationType === 'loan_started') {
     return (
       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white shrink-0 p-1.5" aria-hidden>
-        <img src="/prestec_on.png" alt="" className="w-full h-full object-contain" width={20} height={20} />
+        <Image src="/prestec_on.png" alt="" className="object-contain" width={20} height={20} />
       </span>
     )
   }
   if (notificationType === 'loan_ended') {
     return (
       <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0 p-1.5" aria-hidden>
-        <img src="/prestec_off.png" alt="" className="w-full h-full object-contain opacity-90" width={20} height={20} />
+        <Image src="/prestec_off.png" alt="" className="object-contain opacity-90" width={20} height={20} />
       </span>
     )
   }

@@ -47,7 +47,7 @@ export function AppInfoPopup() {
   const [windowSize, setWindowSize] = useState({ w: 0, h: 0 })
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const headerRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement | null>(null)
   const reserveDetailButtonRef = useRef<HTMLButtonElement>(null)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const { t } = useI18n()
@@ -249,32 +249,32 @@ export function AppInfoPopup() {
         <>
           {/* Pas ≥1: forat rectangular amb mida del contingut; 4 bandes fosques per sobre del popup (z-[70]) */}
           <div className="fixed inset-0 w-full h-full" style={{ zIndex: overlayZ, pointerEvents: 'none' }} aria-hidden>
-            <div
-              className="absolute bg-black/60"
+            <button
+              type="button"
+              className="absolute bg-black/60 border-0 p-0"
               style={{ left: 0, top: 0, width: windowSize.w, height: Math.max(0, stepRect.top), pointerEvents: 'auto' }}
               onClick={advanceOnboarding}
-              role="button"
               aria-label={t('common.next')}
             />
-            <div
-              className="absolute bg-black/60"
+            <button
+              type="button"
+              className="absolute bg-black/60 border-0 p-0"
               style={{ left: 0, top: stepRect.top, width: Math.max(0, stepRect.left), height: stepRect.height, pointerEvents: 'auto' }}
               onClick={advanceOnboarding}
-              role="button"
               aria-label={t('common.next')}
             />
-            <div
-              className="absolute bg-black/60"
+            <button
+              type="button"
+              className="absolute bg-black/60 border-0 p-0"
               style={{ left: stepRect.left + stepRect.width, top: stepRect.top, width: Math.max(0, windowSize.w - (stepRect.left + stepRect.width)), height: stepRect.height, pointerEvents: 'auto' }}
               onClick={advanceOnboarding}
-              role="button"
               aria-label={t('common.next')}
             />
-            <div
-              className="absolute bg-black/60"
+            <button
+              type="button"
+              className="absolute bg-black/60 border-0 p-0"
               style={{ left: 0, top: stepRect.top + stepRect.height, width: windowSize.w, height: Math.max(0, windowSize.h - (stepRect.top + stepRect.height)), pointerEvents: 'auto' }}
               onClick={advanceOnboarding}
-              role="button"
               aria-label={t('common.next')}
             />
           </div>
@@ -368,20 +368,34 @@ export function AppInfoPopup() {
                   : undefined
             }
           >
-          <div
-            ref={headerRef}
-            className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0 cursor-default"
-            onClick={showOnboarding ? advanceOnboarding : undefined}
-            role={showOnboarding ? 'button' : undefined}
-            aria-label={showOnboarding ? t('common.next') : undefined}
-          >
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-              {t('info.title')}
-            </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
-              {t('info.intro')}
-            </p>
-          </div>
+          {showOnboarding ? (
+            <button
+              type="button"
+              ref={headerRef}
+              className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0 text-left w-full"
+              onClick={advanceOnboarding}
+              aria-label={t('common.next')}
+            >
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                {t('info.title')}
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                {t('info.intro')}
+              </p>
+            </button>
+          ) : (
+            <div
+              ref={headerRef}
+              className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0 cursor-default"
+            >
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                {t('info.title')}
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                {t('info.intro')}
+              </p>
+            </div>
+          )}
           <div
             className={`px-3 py-3 space-y-3 ${showOnboarding ? 'flex-none' : 'flex-1 min-h-0 overflow-y-auto'}`}
           >
@@ -393,7 +407,18 @@ export function AppInfoPopup() {
                 }}
                 className="text-sm border-l-2 border-blue-200 dark:border-blue-700 pl-3 py-0.5 cursor-default"
                 onClick={showOnboarding ? advanceOnboarding : undefined}
+                onKeyDown={
+                  showOnboarding
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          advanceOnboarding()
+                        }
+                      }
+                    : undefined
+                }
                 role={showOnboarding ? 'button' : undefined}
+                tabIndex={showOnboarding ? 0 : undefined}
                 aria-label={showOnboarding ? t('common.next') : undefined}
               >
                 <p className="font-medium text-gray-900 dark:text-white">
@@ -422,13 +447,13 @@ export function AppInfoPopup() {
             ))}
           </div>
           <div className="px-3 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 shrink-0">
-<button
-            type="button"
-            onClick={handleClosePopup}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            {t('common.close')}
-          </button>
+            <button
+              type="button"
+              onClick={handleClosePopup}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {t('common.close')}
+            </button>
           </div>
         </div>
         )

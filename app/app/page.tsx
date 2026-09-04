@@ -4,11 +4,20 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
 import TranslateButton from '@/components/TranslateButton'
-import { getStoredNickname, getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
+import { getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
+import { useStoredNickname } from '@/lib/use-stored-nickname'
 import { logError, logInfo } from '@/lib/client-logger'
+import {
+  canReserveProduct,
+  canUnreserveProduct,
+  getFilletBoxShadow,
+  getFilletClass,
+  isReservedByOwner,
+} from '@/lib/product-fillets'
 
 interface Product {
   id: string
@@ -24,9 +33,7 @@ interface Product {
 }
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   useEffect(() => {
@@ -42,69 +49,56 @@ export default function ProductsPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [refreshSpinning, setRefreshSpinning] = useState(false)
   const router = useRouter()
-  const nickname = getStoredNickname()
+  const nickname = useStoredNickname()
   const { t } = useI18n()
 
-  const refreshProducts = async () => {
-    await fetchProducts()
-  }
+  const {
+    data: products = [],
+    isLoading: loading,
+    mutate: mutateProducts,
+  } = useSWR<Product[]>(nickname ? '/api/products' : null, {
+    revalidateOnFocus: true,
+  })
+
+  const { data: favoriteProducts = [], mutate: mutateFavorites } = useSWR<Product[]>(
+    nickname ? '/api/favorites' : null,
+    { revalidateOnFocus: true }
+  )
 
   useEffect(() => {
-    if (!nickname) {
-      router.push('/')
-      return
-    }
-    fetchProducts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, nickname])
+    setFavorites(new Set(favoriteProducts.map((p) => p.id)))
+  }, [favoriteProducts])
+
+  useEffect(() => {
+    if (nickname === null) return
+    if (!nickname) router.push('/')
+  }, [nickname, router])
 
   useEffect(() => {
     const onProductState = (e: Event) => {
       const { productId, reserved, reservedBy, prestec } = (e as CustomEvent).detail || {}
       if (!productId) return
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id !== productId
-            ? p
-            : {
-                ...p,
-                ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
-                ...(typeof prestec === 'boolean' && { prestec }),
-              }
-        )
+      void mutateProducts(
+        (current) =>
+          current?.map((p) =>
+            p.id !== productId
+              ? p
+              : {
+                  ...p,
+                  ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
+                  ...(typeof prestec === 'boolean' && { prestec }),
+                }
+          ),
+        { revalidate: false }
       )
     }
     window.addEventListener('product-state', onProductState)
     return () => window.removeEventListener('product-state', onProductState)
-  }, [])
+  }, [mutateProducts])
 
-  // Refetch quan la pestanya torna a ser visible (fallback si el WebSocket no ha arribat)
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') fetchProducts()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- només registrar listener una vegada
-  }, [])
-
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch('/api/products', { cache: 'no-store' })
-      if (response.ok) {
-        const data = await response.json()
-        setProducts(data)
-        setFilteredProducts(data)
-        // Carregar estat de preferits després de carregar productes
-        if (nickname && data.length > 0) {
-          fetchFavoritesStatus(data)
-        }
-      }
-    } catch (error) {
-      logError('Error carregant productes:', error)
-    } finally {
-      setLoading(false)
-    }
+  const refreshProducts = () => {
+    void mutateProducts(undefined, { revalidate: true })
+    void mutateFavorites(undefined, { revalidate: true })
   }
 
   // Filtrar productes
@@ -146,39 +140,6 @@ export default function ProductsPage() {
     setFilteredProducts(filtered)
   }, [filters, products])
 
-  const fetchFavoritesStatus = async (productsList: Product[]) => {
-    if (!productsList || productsList.length === 0) return
-    try {
-      const favoriteStatuses = await Promise.all(
-        productsList.map(async (product) => {
-          try {
-            const response = await fetch(
-              `/api/favorites/check?productId=${product.id}`,
-              { cache: 'no-store' }
-            )
-            if (response.ok) {
-              const data = await response.json()
-              return { productId: product.id, isFavorite: data.isFavorite }
-            }
-            return { productId: product.id, isFavorite: false }
-          } catch (err) {
-            logError(`Error comprovant preferit per producte ${product.id}:`, err)
-            return { productId: product.id, isFavorite: false }
-          }
-        })
-      )
-      const favoritesSet = new Set(
-        favoriteStatuses
-          .filter((status) => status.isFavorite)
-          .map((status) => status.productId)
-      )
-      logInfo('Favorites set actualitzat:', Array.from(favoritesSet))
-      setFavorites(favoritesSet)
-    } catch (error) {
-      logError('Error carregant estat de preferits:', error)
-    }
-  }
-
   const toggleFavorite = async (productId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -212,6 +173,8 @@ export default function ProductsPage() {
         setFavorites(prevFavorites)
         logError(`Error ${isFavorite ? 'eliminant' : 'afegint'} preferit:`, responseData)
         alert(`Error: ${responseData.error || 'Error desconegut'}`)
+      } else {
+        void mutateFavorites(undefined, { revalidate: true })
       }
     } catch (error) {
       setFavorites(prevFavorites)
@@ -220,55 +183,25 @@ export default function ProductsPage() {
     }
   }
 
-  const canReserve = (p: Product) => nickname === p.user.nickname && !p.reserved
-  const canUnreserve = (p: Product) =>
-    !!p.reserved &&
-    (nickname === (p.reservedBy?.nickname ?? '') ||
-      (nickname === p.user.nickname && !p.reservedBy))
-  const isReservedByOwner = (p: Product) =>
-    !!p.reserved && p.reservedBy?.nickname === p.user.nickname
-  /** Filet groc només per a les miniatures dels meus productes reservats per DM (jo sóc l’amo i jo ho he reservat). */
-  /** Filet groc quan el producte l'ha reservat l'usuari amb la connexió activa. */
-  /** Només el propietari veu els filets verd (prèstec) i blau (reserva del titular); el groc és per qui ha reservat (DM). */
-  const isOwner = (p: Product) => !!nickname && nickname === p.user.nickname
-  const showOwnerReservedFillet = (p: Product) => !!p.reserved && p.reservedBy?.nickname === p.user.nickname
-  const showDmFillet = (p: Product) =>
-    !!nickname && !!p.reserved && p.reservedBy?.nickname === nickname && p.reservedBy?.nickname !== p.user.nickname
-  const getFilletClass = (p: Product) =>
-    p.prestec && isOwner(p)
-      ? 'border-[6px] border-green-500'
-      : showOwnerReservedFillet(p) && isOwner(p)
-        ? 'border-[6px] border-blue-500'
-        : showDmFillet(p)
-          ? 'border-[6px] border-yellow-500'
-          : ''
-  const getFilletBoxShadow = (p: Product) =>
-    p.prestec && isOwner(p)
-      ? 'inset 0 0 0 6px #22c55e'
-      : showOwnerReservedFillet(p) && isOwner(p)
-        ? 'inset 0 0 0 6px #3b82f6'
-        : showDmFillet(p)
-          ? 'inset 0 0 0 6px #eab308'
-          : ''
-
   const toggleReserved = async (productId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     const product = products.find((p) => p.id === productId)
-    if (!product || (!canReserve(product) && !canUnreserve(product))) return
+    if (!product || (!canReserveProduct(product, nickname) && !canUnreserveProduct(product, nickname))) return
     const nextReserved = !product.reserved
 
-    // Optimistic: canviar icona al moment
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId
-          ? {
-              ...p,
-              reserved: nextReserved,
-              reservedBy: nextReserved && nickname ? { nickname } : null,
-            }
-          : p
-      )
+    void mutateProducts(
+      (prev) =>
+        prev?.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                reserved: nextReserved,
+                reservedBy: nextReserved && nickname ? { nickname } : null,
+              }
+            : p
+        ),
+      { revalidate: false }
     )
 
     try {
@@ -280,22 +213,26 @@ export default function ProductsPage() {
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
         logError('Error actualitzant reserva:', data)
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.id === productId
-              ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
-              : p
-          )
+        void mutateProducts(
+          (prev) =>
+            prev?.map((p) =>
+              p.id === productId
+                ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
+                : p
+            ),
+          { revalidate: false }
         )
       }
     } catch (error) {
       logError('Error actualitzant reserva:', error)
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === productId
-            ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
-            : p
-        )
+      void mutateProducts(
+        (prev) =>
+          prev?.map((p) =>
+            p.id === productId
+              ? { ...p, reserved: product.reserved, reservedBy: product.reservedBy }
+              : p
+          ),
+        { revalidate: false }
       )
     }
   }
@@ -313,8 +250,7 @@ export default function ProductsPage() {
         body: JSON.stringify({ prestec: !product.prestec }),
       })
       if (response.ok) {
-        // Refrescar tots els productes per assegurar que l'estat es manté
-        await fetchProducts()
+        await refreshProducts()
       }
     } catch (error) {
       logError('Error actualitzant préstec:', error)
@@ -331,7 +267,10 @@ export default function ProductsPage() {
         method: 'DELETE',
       })
       if (response.ok) {
-        setProducts((prev) => prev.filter((p) => p.id !== productId))
+        void mutateProducts(
+          (prev) => prev?.filter((p) => p.id !== productId),
+          { revalidate: false }
+        )
       }
     } catch (error) {
       logError('Error eliminant producte:', error)
@@ -570,13 +509,15 @@ export default function ProductsPage() {
               <Link
                 key={product.id}
                 href={`/app/products/${product.id}`}
-                className={`relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group ${getFilletClass(product)}`}
+                className={`relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group ${getFilletClass(product, nickname)}`}
               >
                 {product.images && product.images.length > 0 ? (
-                  <img
+                  <Image
                     src={product.images[0]}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 16vw"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -601,7 +542,7 @@ export default function ProductsPage() {
                 </div>
                 {/* Icones a la cantonada superior dreta */}
                 <div className="absolute top-1 right-1 flex flex-col gap-1">
-                  {canUnreserve(product) ? (
+                  {canUnreserveProduct(product, nickname) ? (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -628,7 +569,7 @@ export default function ProductsPage() {
                         </svg>
                       )}
                     </button>
-                  ) : nickname === product.user.nickname && canReserve(product) ? null : (
+                  ) : nickname === product.user.nickname && canReserveProduct(product, nickname) ? null : (
                     <div
                       className={`rounded-full p-2 shadow-md ${
                         product.reserved
@@ -664,7 +605,7 @@ export default function ProductsPage() {
                   )}
                   {product.user.nickname === nickname ? (
                     <>
-                      {canReserve(product) && (
+                      {canReserveProduct(product, nickname) && (
                         <button
                           onClick={(e) => {
                             e.preventDefault()
@@ -762,21 +703,23 @@ export default function ProductsPage() {
               {product.images && product.images.length > 0 && (
                 <div className="h-48 bg-gray-200 dark:bg-gray-700 relative group flex-shrink-0">
                   <Link href={`/app/products/${product.id}`} className="relative block w-full h-full">
-                    <img
+                    <Image
                       src={product.images[0]}
                       alt={product.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     />
-                    {getFilletBoxShadow(product) ? (
+                    {getFilletBoxShadow(product, nickname) ? (
                       <span
                         className="absolute inset-0 pointer-events-none block"
-                        style={{ boxShadow: getFilletBoxShadow(product) }}
+                        style={{ boxShadow: getFilletBoxShadow(product, nickname) }}
                         aria-hidden
                       />
                     ) : null}
                   </Link>
                   <div className="absolute top-2 right-2 flex flex-col gap-2 z-20">
-                    {canUnreserve(product) ? (
+                    {canUnreserveProduct(product, nickname) ? (
                       <button
                         type="button"
                         onClick={(e) => toggleReserved(product.id, e)}
@@ -799,7 +742,7 @@ export default function ProductsPage() {
                           </svg>
                         )}
                       </button>
-                    ) : nickname === product.user.nickname && canReserve(product) ? null : (
+                    ) : nickname === product.user.nickname && canReserveProduct(product, nickname) ? null : (
                       <div
                         className={`rounded-full p-2 shadow-md ${
                           product.reserved
@@ -823,7 +766,7 @@ export default function ProductsPage() {
                     )}
                     {product.user.nickname === nickname ? (
                       <>
-                        {canReserve(product) && (
+                        {canReserveProduct(product, nickname) && (
                           <button
                             onClick={(e) => toggleReserved(product.id, e)}
                             className="rounded-full p-2 shadow-md transition bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"

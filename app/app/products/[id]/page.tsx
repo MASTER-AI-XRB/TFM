@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
 import TranslateButton from '@/components/TranslateButton'
-import { getStoredNickname } from '@/lib/client-session'
+import { useStoredNickname } from '@/lib/use-stored-nickname'
 import { logError } from '@/lib/client-logger'
 
 interface Product {
@@ -22,76 +23,50 @@ interface Product {
   createdAt: string
 }
 
-export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const [product, setProduct] = useState<Product | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function ProductDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [productId, setProductId] = useState<string | null>(null)
+  const routeParams = useParams<{ id: string }>()
+  const productId = typeof routeParams?.id === 'string' ? routeParams.id : null
   const router = useRouter()
-  const nickname = getStoredNickname()
+  const nickname = useStoredNickname()
   const { t } = useI18n()
   const { theme } = useTheme()
 
-  useEffect(() => {
-    const getParams = async () => {
-      const resolvedParams = params instanceof Promise ? await params : params
-      setProductId(resolvedParams.id)
-    }
-    getParams()
-  }, [params])
+  const {
+    data: product = null,
+    isLoading: loading,
+    error,
+    mutate,
+  } = useSWR<Product>(productId ? `/api/products/${productId}` : null, {
+    revalidateOnFocus: true,
+  })
 
   useEffect(() => {
-    if (productId) {
-      fetchProduct()
+    if (error) {
+      router.push('/app')
     }
-  }, [productId])
+  }, [error, router])
 
   useEffect(() => {
     if (!productId) return
     const onProductState = (e: Event) => {
       const { productId: id, reserved, reservedBy, prestec } = (e as CustomEvent).detail || {}
       if (id !== productId) return
-      setProduct((prev) =>
-        prev
-          ? {
-              ...prev,
-              ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
-              ...(typeof prestec === 'boolean' && { prestec }),
-            }
-          : null
+      void mutate(
+        (prev) =>
+          prev
+            ? {
+                ...prev,
+                ...(typeof reserved === 'boolean' && { reserved, reservedBy: reservedBy ?? null }),
+                ...(typeof prestec === 'boolean' && { prestec }),
+              }
+            : null,
+        { revalidate: false }
       )
     }
     window.addEventListener('product-state', onProductState)
     return () => window.removeEventListener('product-state', onProductState)
-  }, [productId])
-
-  // Refetch quan la pestanya torna a ser visible (fallback si el WebSocket no ha arribat)
-  useEffect(() => {
-    if (!productId) return
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') fetchProduct()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [productId])
-
-  const fetchProduct = async () => {
-    if (!productId) return
-    try {
-      const response = await fetch(`/api/products/${productId}`, { cache: 'no-store' })
-      if (response.ok) {
-        const data = await response.json()
-        setProduct(data)
-      } else {
-        router.push('/app')
-      }
-    } catch (error) {
-      logError('Error carregant producte:', error)
-      router.push('/app')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [productId, mutate])
 
   const canReserve = product && nickname === product.user.nickname && !product.reserved
   const canUnreserve =
@@ -108,14 +83,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     const prevProduct = product
 
     // Optimistic: canviar icona al moment
-    setProduct((prev) =>
-      prev
-        ? {
-            ...prev,
-            reserved: nextReserved,
-            reservedBy: nextReserved && nickname ? { nickname } : null,
-          }
-        : null
+    void mutate(
+      {
+        ...product,
+        reserved: nextReserved,
+        reservedBy: nextReserved && nickname ? { nickname } : null,
+      },
+      { revalidate: false }
     )
 
     try {
@@ -125,11 +99,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         body: JSON.stringify({ reserved: nextReserved }),
       })
       if (!response.ok) {
-        setProduct(prevProduct)
+        void mutate(prevProduct, { revalidate: false })
         logError('Error actualitzant reserva:', await response.json().catch(() => ({})))
       }
     } catch (error) {
-      setProduct(prevProduct)
+      void mutate(prevProduct, { revalidate: false })
       logError('Error actualitzant reserva:', error)
     }
   }
@@ -145,7 +119,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       })
       if (response.ok) {
         const data = await response.json()
-        setProduct({ ...product, prestec: data.prestec })
+        void mutate({ ...product, prestec: data.prestec }, { revalidate: false })
       }
     } catch (error) {
       logError('Error actualitzant préstec:', error)
@@ -200,16 +174,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="w-full md:w-1/2">
             {product.images && product.images.length > 0 ? (
               <div className="relative">
-                <div className="aspect-square bg-gray-200 dark:bg-gray-700">
-                  <img
+                <div className="aspect-square bg-gray-200 dark:bg-gray-700 relative">
+                  <Image
                     src={product.images[currentImageIndex]}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
                   />
                 </div>
                 {product.images.length > 1 && (
                   <>
                     <button
+                      type="button"
+                      aria-label={t('productDetail.prevImage') || 'Imatge anterior'}
                       onClick={() =>
                         setCurrentImageIndex(
                           (prev) => (prev - 1 + product.images.length) % product.images.length
@@ -220,6 +199,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       ‹
                     </button>
                     <button
+                      type="button"
+                      aria-label={t('productDetail.nextImage') || 'Imatge següent'}
                       onClick={() =>
                         setCurrentImageIndex(
                           (prev) => (prev + 1) % product.images.length
@@ -230,9 +211,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       ›
                     </button>
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
-                      {product.images.map((_, index) => (
+                      {product.images.map((imageSrc, index) => (
                         <button
-                          key={index}
+                          key={imageSrc}
+                          type="button"
+                          aria-label={`${t('productDetail.goToImage') || 'Anar a la imatge'} ${index + 1}`}
+                          aria-current={index === currentImageIndex ? 'true' : undefined}
                           onClick={() => setCurrentImageIndex(index)}
                           className={`w-2 h-2 rounded-full ${
                             index === currentImageIndex

@@ -13,6 +13,7 @@ import {
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logWarn } from '@/lib/logger'
 import { getSocketServerUrl } from '@/lib/socket'
+import { postSocketNotify } from '@/lib/notify-fetch'
 
 export async function GET(
   request: NextRequest,
@@ -108,32 +109,30 @@ export async function DELETE(
         const nickname = ownerNickname ?? 'El propietari'
         await Promise.all(
           favorites.map((fav) =>
-            fetch(`${socketUrl.replace(/\/$/, '')}/notify`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-notify-token': notifySecret,
+            postSocketNotify(
+              `${socketUrl.replace(/\/$/, '')}/notify`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-notify-token': notifySecret,
+                },
+                body: JSON.stringify({
+                  targetUserId: fav.userId,
+                  type: 'info',
+                  titleKey: 'notifications.productDeletedFromFavorites',
+                  messageKey: 'notifications.productDeletedFromFavoritesMessage',
+                  params: { nickname, productName: product.name },
+                  title: 'Producte eliminat',
+                  message: `${nickname} ha eliminat un producte dels teus preferits: ${product.name}`,
+                  notificationType: 'deleted_favorite',
+                  actorNickname: nickname,
+                  productName: product.name,
+                  action: { labelKey: 'notifications.goToProducts', label: 'Anar a productes', url: '/app' },
+                }),
               },
-              body: JSON.stringify({
-                targetUserId: fav.userId,
-                type: 'info',
-                titleKey: 'notifications.productDeletedFromFavorites',
-                messageKey: 'notifications.productDeletedFromFavoritesMessage',
-                params: { nickname, productName: product.name },
-                title: 'Producte eliminat',
-                message: `${nickname} ha eliminat un producte dels teus preferits: ${product.name}`,
-                notificationType: 'deleted_favorite',
-                actorNickname: nickname,
-                productName: product.name,
-                action: { labelKey: 'notifications.goToProducts', label: 'Anar a productes', url: '/app' },
-              }),
-            })
-              .then(async (r) => {
-                if (r.ok || r.status === 404) return
-                const d = await r.json().catch(() => ({}))
-                logWarn('Notify eliminat-preferits:', (d as { error?: string })?.error ?? r.status)
-              })
-              .catch(() => {})
+              { targetUserId: fav.userId, label: 'Notify eliminat-preferits' }
+            )
           )
         )
       } catch (e) {
@@ -253,26 +252,31 @@ export async function PATCH(
       if (!process.env.BLOB_READ_WRITE_TOKEN) {
         console.warn('BLOB_READ_WRITE_TOKEN no configurat, intentant usar sistema de fitxers local...')
         try {
-          const { writeFile, mkdir } = await import('fs/promises')
-          const { join } = await import('path')
-          const { existsSync } = await import('fs')
+          const [{ writeFile, mkdir }, { join }, { existsSync }] = await Promise.all([
+            import('fs/promises'),
+            import('path'),
+            import('fs'),
+          ])
 
           const uploadsDir = join(process.cwd(), 'public', 'uploads')
           if (!existsSync(uploadsDir)) {
             await mkdir(uploadsDir, { recursive: true })
           }
 
-          for (const image of newImages) {
-            const bytes = await image.arrayBuffer()
-            const buffer = Buffer.from(bytes)
+          const localPaths = await Promise.all(
+            newImages.map(async (image) => {
+              const bytes = await image.arrayBuffer()
+              const buffer = Buffer.from(bytes)
 
-            const sanitizedName = sanitizeString(image.name, 100)
-              .replace(/[^a-zA-Z0-9.-]/g, '_')
-            const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
-            const filepath = join(uploadsDir, filename)
-            await writeFile(filepath, buffer)
-            imagePaths.push(`/uploads/${filename}`)
-          }
+              const sanitizedName = sanitizeString(image.name, 100)
+                .replace(/[^a-zA-Z0-9.-]/g, '_')
+              const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
+              const filepath = join(uploadsDir, filename)
+              await writeFile(filepath, buffer)
+              return `/uploads/${filename}`
+            })
+          )
+          imagePaths.push(...localPaths)
         } catch (fallbackError) {
           console.error('Error amb fallback local:', fallbackError)
           return NextResponse.json(
@@ -281,34 +285,37 @@ export async function PATCH(
           )
         }
       } else {
-        for (const image of newImages) {
-          try {
-            const bytes = await image.arrayBuffer()
-            const buffer = Buffer.from(bytes)
+        try {
+          const blobUrls = await Promise.all(
+            newImages.map(async (image) => {
+              const bytes = await image.arrayBuffer()
+              const buffer = Buffer.from(bytes)
 
-            const sanitizedName = sanitizeString(image.name, 100)
-              .replace(/[^a-zA-Z0-9.-]/g, '_')
-            const filename = `product-${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
+              const sanitizedName = sanitizeString(image.name, 100)
+                .replace(/[^a-zA-Z0-9.-]/g, '_')
+              const filename = `product-${Date.now()}-${Math.random().toString(36).substring(7)}-${sanitizedName}`
 
-            const blob = await put(filename, buffer, {
-              access: 'public',
-              addRandomSuffix: true,
-              contentType: image.type,
+              const blob = await put(filename, buffer, {
+                access: 'public',
+                addRandomSuffix: true,
+                contentType: image.type,
+              })
+
+              return blob.url
             })
+          )
+          imagePaths.push(...blobUrls)
+        } catch (blobError) {
+          console.error('Error pujant imatge a Blob:', blobError)
+          const errorMessage =
+            blobError instanceof Error && blobError.message.includes('token')
+              ? 'Error d\'autenticació amb Vercel Blob. Verifica BLOB_READ_WRITE_TOKEN.'
+              : 'Error al pujar imatges a Vercel Blob'
 
-            imagePaths.push(blob.url)
-          } catch (blobError) {
-            console.error('Error pujant imatge a Blob:', blobError)
-            const errorMessage =
-              blobError instanceof Error && blobError.message.includes('token')
-                ? 'Error d\'autenticació amb Vercel Blob. Verifica BLOB_READ_WRITE_TOKEN.'
-                : 'Error al pujar imatges a Vercel Blob'
-
-            return NextResponse.json(
-              { error: errorMessage },
-              { status: 500 }
-            )
-          }
+          return NextResponse.json(
+            { error: errorMessage },
+            { status: 500 }
+          )
         }
       }
     }

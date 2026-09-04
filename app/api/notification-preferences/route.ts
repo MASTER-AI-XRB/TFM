@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 import { getAuthUserId } from '@/lib/auth'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
+import { mapTruthy } from '@/lib/map-truthy'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,17 +14,10 @@ function getPrisma() {
 }
 
 const parseList = (value?: string | null): string[] =>
-  value
-    ? value
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : []
+  value ? mapTruthy(value.split(','), (item) => item.trim()) : []
 
 const normalizeList = (items: string[], maxItems: number, maxLength: number) => {
-  const normalized = items
-    .map((item) => item.trim().slice(0, maxLength))
-    .filter(Boolean)
+  const normalized = mapTruthy(items, (item) => item.trim().slice(0, maxLength))
   return normalized.slice(0, maxItems)
 }
 

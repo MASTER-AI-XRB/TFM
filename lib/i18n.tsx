@@ -914,6 +914,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       const response = await fetch(
         `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
       )
+      if (!response.ok) {
+        return text
+      }
       const data = await response.json()
       if (data.responseData && data.responseData.translatedText) {
         return data.responseData.translatedText

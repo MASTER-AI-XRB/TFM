@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 
 export default function ResetPasswordPage() {
@@ -10,27 +11,16 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const router = useRouter()
   const params = useParams()
   const token = params?.token as string
   const { t } = useI18n()
 
-  useEffect(() => {
-    // Verificar si el token és vàlid
-    if (token) {
-      fetch(`/api/auth/verify-reset-token?token=${token}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setTokenValid(data.valid || false)
-        })
-        .catch(() => {
-          setTokenValid(false)
-        })
-    } else {
-      setTokenValid(false)
-    }
-  }, [token])
+  const { data: tokenData, isLoading: validatingToken, error: tokenError } = useSWR<{ valid?: boolean }>(
+    token ? `/api/auth/verify-reset-token?token=${token}` : null
+  )
+
+  const tokenValid = !token ? false : validatingToken ? null : tokenError ? false : Boolean(tokenData?.valid)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

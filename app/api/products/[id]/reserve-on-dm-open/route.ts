@@ -5,6 +5,7 @@ import { validateUuid } from '@/lib/validation'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logInfo, logWarn } from '@/lib/logger'
 import { getSocketServerUrl } from '@/lib/socket'
+import { postSocketNotify } from '@/lib/notify-fetch'
 
 /**
  * Reserva el producte per l'usuari que obre el DM (primer que obre).
@@ -99,42 +100,30 @@ export async function POST(
           logInfo(`Notificacions reserva (DM): enviant a ${favorites.length} usuari(s) amb el producte als preferits.`)
           await Promise.all(
             favorites.map((fav) =>
-              fetch(`${socketUrl}/notify`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'x-notify-token': notifySecret,
+              postSocketNotify(
+                `${socketUrl}/notify`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-notify-token': notifySecret,
+                  },
+                  body: JSON.stringify({
+                    targetUserId: fav.userId,
+                    type: 'info',
+                    titleKey: 'notifications.productReserved',
+                    messageKey: 'notifications.productReservedFromFavoritesMessage',
+                    params: { nickname: actorNickname, productName },
+                    title: 'Producte reservat',
+                    message: `${actorNickname} ha reservat un producte dels teus preferits: ${productName}`,
+                    notificationType: 'reserved_favorite',
+                    actorNickname,
+                    productName,
+                    action: { labelKey: 'notifications.viewProduct', label: 'Veure producte', url: `/app/products/${productId}` },
+                  }),
                 },
-                body: JSON.stringify({
-                  targetUserId: fav.userId,
-                  type: 'info',
-                  titleKey: 'notifications.productReserved',
-                  messageKey: 'notifications.productReservedFromFavoritesMessage',
-                  params: { nickname: actorNickname, productName },
-                  title: 'Producte reservat',
-                  message: `${actorNickname} ha reservat un producte dels teus preferits: ${productName}`,
-                  notificationType: 'reserved_favorite',
-                  actorNickname,
-                  productName,
-                  action: { labelKey: 'notifications.viewProduct', label: 'Veure producte', url: `/app/products/${productId}` },
-                }),
-              }).then(async (r) => {
-                if (r.ok || r.status === 404) return
-                const body = await r.text().catch(() => '')
-                const msg = r.status === 401
-                  ? 'Revisa AUTH_SECRET/NOTIFY_SECRET (mateix a Vercel i Railway).'
-                  : (() => {
-                      try {
-                        const d = JSON.parse(body) as { error?: string }
-                        return (d?.error ?? body) || String(r.status)
-                      } catch {
-                        return body || String(r.status)
-                      }
-                    })()
-                logWarn('Notify reserva-DM preferits fallit:', { status: r.status, targetUserId: fav.userId, detail: msg })
-              }).catch((err) => {
-                logWarn('Notify reserva-DM preferits error xarxa:', { targetUserId: fav.userId, error: String(err?.message || err) })
-              })
+                { targetUserId: fav.userId, label: 'Notify reserva-DM preferits' }
+              )
             )
           )
         }

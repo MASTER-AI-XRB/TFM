@@ -37,7 +37,7 @@ async function buildTokenResponse(user: { id: string; nickname: string | null })
   return res
 }
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     let user: { id: string; nickname: string | null; password: string | null; lastLoginAt: Date | null } | null = null
 

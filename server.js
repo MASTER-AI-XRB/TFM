@@ -186,6 +186,15 @@ app.prepare().then(() => {
     }
   }
 
+  const mapTruthy = (items, transform) => {
+    const result = []
+    for (const item of items) {
+      const value = transform(item)
+      if (value) result.push(value)
+    }
+    return result
+  }
+
   const normalizeString = (value, maxLength) => {
     if (typeof value !== 'string') return ''
     return value.trim().slice(0, maxLength)
@@ -271,12 +280,12 @@ app.prepare().then(() => {
       return true
     }
 
-    const allowedNicknames = parseJsonArray(preference.allowedNicknames)
-      .map((nickname) => String(nickname).toLowerCase())
-      .filter(Boolean)
-    const allowedKeywords = parseJsonArray(preference.allowedProductKeywords)
-      .map((keyword) => String(keyword).toLowerCase())
-      .filter(Boolean)
+    const allowedNicknames = mapTruthy(parseJsonArray(preference.allowedNicknames), (nickname) =>
+      String(nickname).toLowerCase()
+    )
+    const allowedKeywords = mapTruthy(parseJsonArray(preference.allowedProductKeywords), (keyword) =>
+      String(keyword).toLowerCase()
+    )
 
     const actorNickname = String(payload.actorNickname || '').toLowerCase()
     const productName = String(payload.productName || payload.productType || '').toLowerCase()

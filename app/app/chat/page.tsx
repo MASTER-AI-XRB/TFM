@@ -5,12 +5,15 @@ import type { Socket } from 'socket.io-client'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
+import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useNotifications } from '@/lib/notifications'
 import TranslateButton from '@/components/TranslateButton'
 import { getSocketUrl } from '@/lib/socket'
-import { getStoredNickname } from '@/lib/client-session'
+import { useStoredNickname } from '@/lib/use-stored-nickname'
+import { useIsVercelProduction } from '@/lib/use-vercel-production'
 import { logError, logInfo, logWarn } from '@/lib/client-logger'
+import { fetchPrivateChatProducts } from '@/lib/private-chat-products'
 import { useAppSocket } from '@/components/AppSocketProvider'
 
 interface Message {
@@ -60,11 +63,57 @@ export default function ChatPage() {
   const privateChatProductsFetchedRef = useRef(privateChatProductsFetched)
   const loadingPrivateProductsRef = useRef(loadingPrivateProducts)
   
-  const nickname = getStoredNickname()
+  const nickname = useStoredNickname()
   const searchParams = useSearchParams()
   const { t, locale } = useI18n()
   const { showInfo } = useNotifications()
   const router = useRouter()
+
+  const wantedProductId =
+    activePrivateTab && activePrivateTab !== 'general' ? activePrivateTab : null
+
+  const {
+    data: activeChatProducts,
+    isLoading: loadingActiveChatProducts,
+    mutate: mutateActiveChatProducts,
+  } = useSWR(
+    activePrivateChat
+      ? (['private-chat-products', activePrivateChat, wantedProductId] as const)
+      : null,
+    ([, chat, productId]) => fetchPrivateChatProducts(chat, productId),
+    { revalidateOnFocus: true }
+  )
+
+  const urlNickname = searchParams.get('nickname')
+  const urlProductId = searchParams.get('productId')
+  useSWR(
+    urlNickname && urlProductId && nickname && nickname !== urlNickname
+      ? (['reserve-on-dm-open', urlProductId] as const)
+      : null,
+    ([, productId]) =>
+      fetch(`/api/products/${productId}/reserve-on-dm-open`, { method: 'POST' }).then((r) => r.ok),
+    { revalidateOnFocus: false, shouldRetryOnError: false }
+  )
+
+  const socketUrl = nickname ? getSocketUrl() : null
+  useSWR(
+    nickname && process.env.NODE_ENV !== 'production' && socketUrl
+      ? (['socket-http-test', socketUrl] as const)
+      : null,
+    async ([, url]) => {
+      const response = await fetch(`${url}/socket.io/?EIO=4&transport=polling`, {
+        method: 'GET',
+        mode: 'cors',
+      })
+      return { status: response.status }
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      onSuccess: (data) => logInfo('✅ Test de connexió HTTP exitós:', data),
+      onError: (err) => logError('❌ Test de connexió HTTP fallat:', err),
+    }
+  )
 
   const resolveActiveProductId = (tab: string | null) => {
     if (tab === null) return null
@@ -194,137 +243,35 @@ export default function ChatPage() {
       return
     }
 
-    const cachedProducts = privateChatProductsRef.current[activePrivateChat]
-    const alreadyFetched = privateChatProductsFetchedRef.current[activePrivateChat]
-    if (cachedProducts && alreadyFetched) {
-      setLoadingPrivateProducts((prev) => ({ ...prev, [activePrivateChat]: false }))
-      if (activePrivateTab === null) {
-        setActivePrivateTab('general')
-        return
-      }
-      if (activePrivateTab !== 'general') {
-        const hasActiveProduct = cachedProducts.some(
-          (product) => product.id === activePrivateTab
-        )
-        const isFromUrl = productIdFromUrlRef.current === activePrivateTab
-        if (!hasActiveProduct && !isFromUrl) {
-          setActivePrivateTab('general')
-        }
-      }
+    if (loadingActiveChatProducts) {
+      setLoadingPrivateProducts((prev) => ({ ...prev, [activePrivateChat]: true }))
       return
     }
 
-    if (loadingPrivateProductsRef.current[activePrivateChat]) return
+    if (!activeChatProducts) return
 
-    let isCancelled = false
-    setLoadingPrivateProducts((prev) => ({ ...prev, [activePrivateChat]: true }))
+    setPrivateChatProducts((prev) => ({
+      ...prev,
+      [activePrivateChat]: activeChatProducts,
+    }))
+    setPrivateChatProductsFetched((prev) => ({
+      ...prev,
+      [activePrivateChat]: true,
+    }))
+    setLoadingPrivateProducts((prev) => ({ ...prev, [activePrivateChat]: false }))
 
-    const fetchProductsForUser = async (): Promise<ProductSummary[]> => {
-      const userResponse = await fetch(
-        `/api/users/${encodeURIComponent(activePrivateChat)}/products`,
-        { cache: 'no-store' }
-      )
-      if (userResponse.ok) {
-        const data = await userResponse.json()
-        if (Array.isArray(data)) {
-          logInfo('Productes del DM carregats', {
-            nickname: activePrivateChat,
-            count: data.length,
-          })
-          return data
-        }
-        logWarn('Resposta inesperada de productes del DM', data)
-      } else {
-        logWarn('Error carregant productes del DM', {
-          nickname: activePrivateChat,
-          status: userResponse.status,
-        })
-      }
-
-      const fallbackResponse = await fetch('/api/products', { cache: 'no-store' })
-      if (!fallbackResponse.ok) {
-        logWarn('Error carregant productes (fallback)', {
-          status: fallbackResponse.status,
-        })
-        return []
-      }
-      const fallbackData = await fallbackResponse.json()
-      if (!Array.isArray(fallbackData)) {
-        logWarn('Resposta inesperada de productes (fallback)', fallbackData)
-        return []
-      }
-      const targetNickname = activePrivateChat.toLowerCase()
-      return fallbackData.filter(
-        (product: ProductSummary & { user?: { nickname?: string } }) =>
-          product.user?.nickname?.toLowerCase() === targetNickname
-      )
+    if (activePrivateTab === null) {
+      setActivePrivateTab('general')
+      return
     }
-
-    fetchProductsForUser()
-      .then(async (products) => {
-        if (isCancelled) return
-        let list = Array.isArray(products) ? products : []
-        const wantedProductId = activePrivateTab !== 'general' ? activePrivateTab : null
-        const isFromUrl = wantedProductId && productIdFromUrlRef.current === wantedProductId
-        if (wantedProductId && !list.some((p) => p.id === wantedProductId)) {
-          if (isFromUrl) {
-            try {
-              const r = await fetch(`/api/products/${wantedProductId}`, { cache: 'no-store' })
-              if (r.ok) {
-                const one = await r.json()
-                if (one?.id && one?.user?.nickname?.toLowerCase() === activePrivateChat.toLowerCase()) {
-                  list = [{
-                    id: one.id,
-                    name: one.name ?? '',
-                    images: one.images ?? [],
-                    reserved: !!one.reserved,
-                    reservedBy: one.reservedBy ?? null,
-                  }, ...list]
-                }
-              }
-            } catch {
-              /* ignora */
-            }
-          }
-        }
-        setPrivateChatProducts((prev) => ({
-          ...prev,
-          [activePrivateChat]: list,
-        }))
-        setPrivateChatProductsFetched((prev) => ({
-          ...prev,
-          [activePrivateChat]: true,
-        }))
-        if (activePrivateTab === null) {
-          setActivePrivateTab('general')
-          return
-        }
-        if (activePrivateTab !== 'general') {
-          const hasActiveProduct = list.some((product) => product.id === activePrivateTab)
-          if (!hasActiveProduct && !isFromUrl) {
-            setActivePrivateTab('general')
-          }
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setPrivateChatProducts((prev) => ({ ...prev, [activePrivateChat]: [] }))
-          setActivePrivateTab('general')
-          setPrivateChatProductsFetched((prev) => ({
-            ...prev,
-            [activePrivateChat]: true,
-          }))
-        }
-      })
-      .finally(() => {
-        setLoadingPrivateProducts((prev) => ({ ...prev, [activePrivateChat]: false }))
-      })
-
-    return () => {
-      isCancelled = true
-      setLoadingPrivateProducts((prev) => ({ ...prev, [activePrivateChat]: false }))
+    if (activePrivateTab !== 'general') {
+      const hasActiveProduct = activeChatProducts.some((product) => product.id === activePrivateTab)
+      const isFromUrl = productIdFromUrlRef.current === activePrivateTab
+      if (!hasActiveProduct && !isFromUrl) {
+        setActivePrivateTab('general')
+      }
     }
-  }, [activePrivateChat, activePrivateTab])
+  }, [activePrivateChat, activePrivateTab, activeChatProducts, loadingActiveChatProducts])
 
   useEffect(() => {
     if (!nickname || typeof window === 'undefined' || !hasRestoredChats) return
@@ -394,7 +341,7 @@ export default function ChatPage() {
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !activePrivateChat || !activePrivateTab || activePrivateTab === 'general' || !nickname) {
+    if (!activePrivateChat || !activePrivateTab || activePrivateTab === 'general' || !nickname) {
       if (!activePrivateTab || activePrivateTab === 'general') {
         confettiFiredForProductRef.current = null
       }
@@ -413,11 +360,12 @@ export default function ChatPage() {
       startVelocity: 40,
       origin: { x: 0.5, y: 0.5 } as const,
     }
+    const confettiTimers: ReturnType<typeof setTimeout>[] = []
     const fireConfetti = (confetti: (o: typeof opts & { angle?: number }) => void) => {
       try {
         confetti(opts)
-        setTimeout(() => confetti({ ...opts, angle: 60 }), 80)
-        setTimeout(() => confetti({ ...opts, angle: 120 }), 160)
+        confettiTimers.push(setTimeout(() => confetti({ ...opts, angle: 60 }), 80))
+        confettiTimers.push(setTimeout(() => confetti({ ...opts, angle: 120 }), 160))
       } catch (e) {
         confettiFiredForProductRef.current = null
         logWarn('Confetti error', e)
@@ -442,7 +390,11 @@ export default function ChatPage() {
           logWarn('Confetti no disponible', err)
         })
     }
-    setTimeout(runAfterPaint, 200)
+    const paintTimer = setTimeout(runAfterPaint, 200)
+    return () => {
+      clearTimeout(paintTimer)
+      confettiTimers.forEach(clearTimeout)
+    }
   }, [activePrivateChat, activePrivateTab, nickname, privateChatProducts, getConfettiCanvas])
 
   useEffect(() => {
@@ -466,25 +418,10 @@ export default function ChatPage() {
     if (!privateChatProductsFetched[activePrivateChat]) return
     const t = setTimeout(() => {
       refetchForProductUrlDoneRef.current = productIdFromUrl
-      fetch(`/api/users/${encodeURIComponent(activePrivateChat)}/products`, { cache: 'no-store' })
-        .then((r) => r.ok ? r.json() : [])
-        .then((data) => {
-          if (!Array.isArray(data)) return
-          setPrivateChatProducts((prev) => ({
-            ...prev,
-            [activePrivateChat]: data.map((p: ProductSummary) => ({
-              id: p.id,
-              name: p.name,
-              images: p.images ?? [],
-              reserved: !!p.reserved,
-              reservedBy: p.reservedBy ?? null,
-            })),
-          }))
-        })
-        .catch(() => {})
+      void mutateActiveChatProducts()
     }, 700)
     return () => clearTimeout(t)
-  }, [activePrivateChat, activePrivateTab, privateChatProductsFetched])
+  }, [activePrivateChat, activePrivateTab, privateChatProductsFetched, mutateActiveChatProducts])
 
   // Funció per obtenir la data formatada
   const getDateLabel = (date: Date): string => {
@@ -532,24 +469,20 @@ export default function ChatPage() {
   // Diagnòstic de connexió (sense crear socket; el socket ve del context)
   useEffect(() => {
     if (!nickname) return
-    const socketUrl = getSocketUrl()
-    if (!socketUrl) {
+    const diagnosticSocketUrl = getSocketUrl()
+    if (!diagnosticSocketUrl) {
       logWarn('⚠️ Socket.io desactivat a producció. Configura NEXT_PUBLIC_SOCKET_URL per activar el xat.')
       logWarn('   Configura a Vercel: NEXT_PUBLIC_SOCKET_URL=https://xarxanglesola-production.up.railway.app')
       return
     }
-    logInfo('  → URL final del socket:', socketUrl)
+    logInfo('  → URL final del socket:', diagnosticSocketUrl)
     logInfo('=== DIAGNÒSTIC DE CONNEXIÓ SOCKET.IO ===')
-    logInfo('URL del socket:', socketUrl)
+    logInfo('URL del socket:', diagnosticSocketUrl)
     logInfo('Origin actual:', typeof window !== 'undefined' ? window.location.origin : 'N/A')
     logInfo('Hostname:', typeof window !== 'undefined' ? window.location.hostname : 'N/A')
     logInfo('========================================')
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-      const testUrl = `${socketUrl}/socket.io/?EIO=4&transport=polling`
-      logInfo('🔍 Provant connexió HTTP a:', testUrl)
-      fetch(testUrl, { method: 'GET', mode: 'cors' })
-        .then((r) => logInfo('✅ Test de connexió HTTP exitós:', { status: r.status }))
-        .catch((err) => logError('❌ Test de connexió HTTP fallat:', err))
+    if (process.env.NODE_ENV !== 'production') {
+      logInfo('🔍 Provant connexió HTTP a:', `${diagnosticSocketUrl}/socket.io/?EIO=4&transport=polling`)
     }
   }, [nickname])
 
@@ -664,12 +597,6 @@ export default function ChatPage() {
 
     if (s.connected) {
       s.emit('join-general')
-    }
-
-    const targetNickname = searchParams.get('nickname')
-    const targetProductId = searchParams.get('productId')
-    if (targetNickname && targetProductId && nickname !== targetNickname) {
-      fetch(`/api/products/${targetProductId}/reserve-on-dm-open`, { method: 'POST' }).catch(() => {})
     }
 
     return () => {
@@ -829,9 +756,7 @@ export default function ChatPage() {
     : messages
 
   // Detectar si estem a producció (Vercel) i si Socket.IO està configurat
-  const isProduction = typeof window !== 'undefined' && 
-                       (window.location.hostname.includes('vercel.app') || 
-                        window.location.hostname.includes('vercel.com'))
+  const isProduction = useIsVercelProduction()
   const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
   const showSocketWarning = isProduction && !socketUrl && !connected
   const activePrivateProducts = activePrivateChat

@@ -76,14 +76,16 @@ export default function CompleteProfilePage() {
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="complete-profile-nickname">
               Nickname
             </label>
             <input
+              id="complete-profile-nickname"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Introdueix un nickname"
+              aria-label="Nickname"
             />
           </div>
           {error && (

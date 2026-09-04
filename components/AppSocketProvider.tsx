@@ -11,10 +11,11 @@ import {
 import { useRouter } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
 import { getSocketUrl } from '@/lib/socket'
-import { getStoredNickname, getStoredSocketToken } from '@/lib/client-session'
+import { getStoredNickname, getStoredSocketToken, PUSH_PERMISSION_GRANTED_EVENT } from '@/lib/client-session'
 import { useNotifications } from '@/lib/notifications'
 import { useI18n, formatTranslation, getLocaleNow } from '@/lib/i18n'
 import { logInfo, logWarn } from '@/lib/client-logger'
+import { registerPushSubscription } from '@/lib/push-subscription'
 
 type AppSocketContextValue = {
   socket: Socket | null
@@ -40,10 +41,12 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
   const showInfoRef = useRef(showInfo)
   const addAlertRef = useRef(addAlert)
   const localeRef = useRef(locale)
-  routerRef.current = router
-  showInfoRef.current = showInfo
-  addAlertRef.current = addAlert
-  localeRef.current = locale
+  useEffect(() => {
+    routerRef.current = router
+    showInfoRef.current = showInfo
+    addAlertRef.current = addAlert
+    localeRef.current = locale
+  }, [router, showInfo, addAlert, locale])
 
   useEffect(() => {
     if (ready === false) {
@@ -71,17 +74,16 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
       reconnectionDelayMax: 5000,
     })
 
-    s.on('connect', () => {
+    const onConnect = () => {
       logInfo('AppSocket connectat')
       setConnected(true)
-    })
-    s.on('disconnect', () => setConnected(false))
-    s.on('connect_error', (err) => {
+    }
+    const onDisconnect = () => setConnected(false)
+    const onConnectError = (err: Error) => {
       logWarn('AppSocket connect_error', err?.message)
       setConnected(false)
-    })
-
-    s.on('app-notification', (data: {
+    }
+    const onAppNotification = (data: {
       type?: string
       title?: string
       message?: string
@@ -104,7 +106,6 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
         nickname: rawParams.nickname ?? rawParams.user ?? data.actorNickname ?? '',
         productName: rawParams.productName ?? rawParams.producte ?? data.productName ?? '',
       }
-      // Preferir traducció (idioma de l’app) quan hi ha clau; literal com a fallback
       let title = ''
       let message = ''
       let actionLabel = ''
@@ -150,20 +151,56 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
         actionLabelKey: data.action?.labelKey,
         action: data.action?.url ? { url: data.action.url, label: actionLabel } : undefined,
       })
-    })
-
-    s.on('product-state', (data: { productId: string; reserved?: boolean; reservedBy?: { nickname: string } | null; prestec?: boolean }) => {
+    }
+    const onProductState = (data: { productId: string; reserved?: boolean; reservedBy?: { nickname: string } | null; prestec?: boolean }) => {
       if (typeof window !== 'undefined' && data?.productId) {
         logInfo('product-state rebut:', { productId: data.productId, reserved: data.reserved, reservedBy: data.reservedBy })
         window.dispatchEvent(new CustomEvent('product-state', { detail: data }))
       }
-    })
+    }
+
+    s.on('connect', onConnect)
+    s.on('disconnect', onDisconnect)
+    s.on('connect_error', onConnectError)
+    s.on('app-notification', onAppNotification)
+    s.on('product-state', onProductState)
 
     setSocket(s)
     return () => {
+      s.off('connect', onConnect)
+      s.off('disconnect', onDisconnect)
+      s.off('connect_error', onConnectError)
+      s.off('app-notification', onAppNotification)
+      s.off('product-state', onProductState)
       s.close()
       setSocket(null)
       setConnected(false)
+    }
+  }, [ready])
+
+  useEffect(() => {
+    if (!ready) return
+    if (!getStoredNickname()) return
+
+    const abort = new AbortController()
+    let subscription: PushSubscription | null = null
+
+    const register = () => {
+      if (typeof window === 'undefined' || window.Notification?.permission !== 'granted') return
+      void registerPushSubscription(abort.signal).then((sub) => {
+        if (sub) subscription = sub
+      })
+    }
+
+    register()
+    window.addEventListener(PUSH_PERMISSION_GRANTED_EVENT, register)
+
+    return () => {
+      abort.abort()
+      window.removeEventListener(PUSH_PERMISSION_GRANTED_EVENT, register)
+      if (subscription) {
+        void subscription.unsubscribe().catch(() => {})
+      }
     }
   }, [ready])
 
