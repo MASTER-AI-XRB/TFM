@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import useSWR from 'swr'
@@ -34,7 +33,6 @@ interface Product {
 export default function MyProductsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [refreshSpinning, setRefreshSpinning] = useState(false)
-  const router = useRouter()
   const nickname = useStoredNickname()
   const { t } = useI18n()
   const { theme } = useTheme()
@@ -50,11 +48,6 @@ export default function MyProductsPage() {
   useEffect(() => {
     setViewMode(getStoredViewMode())
   }, [])
-
-  useEffect(() => {
-    if (nickname === null) return
-    if (!nickname) router.push('/')
-  }, [nickname, router])
 
   useEffect(() => {
     const onProductState = (e: Event) => {

@@ -1,28 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { setStoredSession } from '@/lib/client-session'
 
 export default function CompleteProfilePage() {
-  const sessionHook = useSession()
-  const { data: session, status } = sessionHook ?? { data: null, status: 'loading' as const }
   const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-
-  useEffect(() => {
-    if (status === 'loading') return
-    if (!session) {
-      router.push('/')
-      return
-    }
-    if (session.user?.nickname) {
-      router.push('/app')
-    }
-  }, [session, status, router])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -46,7 +32,7 @@ export default function CompleteProfilePage() {
       }
       if (data?.nickname) {
         setStoredSession(data.nickname, data.socketToken)
-        router.push('/app')
+        router.replace('/app')
         return
       }
       setError("No s'ha pogut completar el perfil")
@@ -55,14 +41,6 @@ export default function CompleteProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="text-gray-600 dark:text-gray-300">Carregant...</div>
-      </div>
-    )
   }
 
   return (
@@ -76,7 +54,10 @@ export default function CompleteProfilePage() {
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="complete-profile-nickname">
+            <label
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              htmlFor="complete-profile-nickname"
+            >
               Nickname
             </label>
             <input

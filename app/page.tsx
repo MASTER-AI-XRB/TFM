@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signIn, useSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { useI18n } from '@/lib/i18n'
-import { getStoredNickname, setStoredSession } from '@/lib/client-session'
-import { useSocketTokenMutation } from '@/lib/use-socket-token'
+import { setStoredSession } from '@/lib/client-session'
 import LanguageSelector from '@/components/LanguageSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 
@@ -36,38 +35,7 @@ export default function Home() {
   const [loginLoading, setLoginLoading] = useState(false)
   const loginBusyRef = useRef(false)
   const router = useRouter()
-  const sessionHook = useSession()
-  const { data: session, status } = sessionHook ?? { data: null, status: 'loading' as const }
   const { t } = useI18n()
-
-  const { trigger: fetchSocketToken } = useSocketTokenMutation()
-
-  useEffect(() => {
-    // Comprovar si ja hi ha un usuari loguejat
-    const savedNickname = getStoredNickname()
-    if (savedNickname) {
-      router.push('/app')
-      return
-    }
-    if (status === 'loading') return
-    if (!session) return
-    if (session?.needsNickname) {
-      router.push('/app/complete-profile')
-      return
-    }
-    void fetchSocketToken()
-      .then((data) => {
-        if (data?.needsNickname) {
-          router.push('/app/complete-profile')
-          return
-        }
-        if (data?.nickname) {
-          setStoredSession(data.nickname, data.socketToken)
-          router.push('/app')
-        }
-      })
-      .catch(() => null)
-  }, [router, session, status, fetchSocketToken])
 
   useEffect(() => {
     // Ajustar la mida del logo segons la mida de la pantalla

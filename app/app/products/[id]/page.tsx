@@ -35,17 +35,10 @@ export default function ProductDetailPage() {
   const {
     data: product = null,
     isLoading: loading,
-    error,
     mutate,
   } = useSWR<Product>(productId ? `/api/products/${productId}` : null, {
     revalidateOnFocus: true,
   })
-
-  useEffect(() => {
-    if (error) {
-      router.push('/app')
-    }
-  }, [error, router])
 
   useEffect(() => {
     if (!productId) return

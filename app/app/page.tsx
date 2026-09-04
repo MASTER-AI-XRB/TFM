@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import useSWR from 'swr'
@@ -48,7 +47,6 @@ export default function ProductsPage() {
   })
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [refreshSpinning, setRefreshSpinning] = useState(false)
-  const router = useRouter()
   const nickname = useStoredNickname()
   const { t } = useI18n()
 
@@ -68,11 +66,6 @@ export default function ProductsPage() {
   useEffect(() => {
     setFavorites(new Set(favoriteProducts.map((p) => p.id)))
   }, [favoriteProducts])
-
-  useEffect(() => {
-    if (nickname === null) return
-    if (!nickname) router.push('/')
-  }, [nickname, router])
 
   useEffect(() => {
     const onProductState = (e: Event) => {

@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import {
+  decideAuthRedirect,
+  hasNextAuthSessionCookie,
+  sessionCookieName,
+  verifySessionTokenEdge,
+} from '@/lib/auth-edge'
 
 // Rate limiting simple (per producció, considera usar Redis)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
@@ -31,10 +37,11 @@ const RATE_LIMITS = [
 ]
 
 function getRateLimitKey(request: NextRequest): string {
-  const ip = request.ip || 
-             request.headers.get('x-forwarded-for')?.split(',')[0] || 
-             request.headers.get('x-real-ip') || 
-             'unknown'
+  const ip =
+    request.ip ||
+    request.headers.get('x-forwarded-for')?.split(',')[0] ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
   return ip
 }
 
@@ -105,49 +112,85 @@ setInterval(() => {
   }
 }, DEFAULT_RATE_LIMIT.windowMs)
 
-export function middleware(request: NextRequest) {
+async function applyPageAuth(request: NextRequest): Promise<NextResponse | null> {
+  const pathname = request.nextUrl.pathname
+  const shouldGuard =
+    pathname === '/' || pathname === '/app' || pathname.startsWith('/app/')
+  if (!shouldGuard) return null
+
+  const session = await verifySessionTokenEdge(
+    request.cookies.get(sessionCookieName)?.value
+  )
+  const hasNextAuthCookie = hasNextAuthSessionCookie(
+    (name) => request.cookies.get(name)?.value
+  )
+
+  const decision = decideAuthRedirect({
+    pathname,
+    session,
+    hasNextAuthCookie,
+  })
+
+  if (decision.action === 'redirect') {
+    const url = request.nextUrl.clone()
+    url.pathname = decision.to
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
+  return null
+}
+
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // Auth de pàgines (/, /app/*) — també en desenvolupament
+  if (!pathname.startsWith('/api/')) {
+    const authResponse = await applyPageAuth(request)
+    if (authResponse) return authResponse
+    return NextResponse.next()
+  }
+
+  // Rate limiting i origen només a producció per API
   if (process.env.NODE_ENV !== 'production') {
     return NextResponse.next()
   }
-  // Només aplicar rate limiting a les API routes
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    const method = request.method.toUpperCase()
-    if (process.env.NODE_ENV === 'production' && !process.env.AUTH_SECRET) {
-      if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-        return NextResponse.json(
-          { error: 'AUTH_SECRET no configurat a producció' },
-          { status: 500 }
-        )
-      }
-    }
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-      const allowedOrigins = getAllowedOrigins()
-      const origin = request.headers.get('origin')
-      const referer = request.headers.get('referer')
-      if (!isOriginAllowed(origin, referer, allowedOrigins)) {
-        return NextResponse.json(
-          { error: 'Origen no permès' },
-          { status: 403 }
-        )
-      }
-    }
 
-    const pathname = request.nextUrl.pathname
-    const limitConfig = getRateLimitConfig(pathname)
-    const key = `${getRateLimitKey(request)}:${limitConfig.keySuffix}`
-    
-    if (!checkRateLimit(key, limitConfig.windowMs, limitConfig.maxRequests)) {
+  const method = request.method.toUpperCase()
+  if (process.env.NODE_ENV === 'production' && !process.env.AUTH_SECRET) {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       return NextResponse.json(
-        { error: 'Massa peticions. Torna-ho a intentar més tard.' },
-        { status: 429 }
+        { error: 'AUTH_SECRET no configurat a producció' },
+        { status: 500 }
       )
     }
+  }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const allowedOrigins = getAllowedOrigins()
+    const origin = request.headers.get('origin')
+    const referer = request.headers.get('referer')
+    if (!isOriginAllowed(origin, referer, allowedOrigins)) {
+      return NextResponse.json({ error: 'Origen no permès' }, { status: 403 })
+    }
+  }
+
+  const limitConfig = getRateLimitConfig(pathname)
+  const key = `${getRateLimitKey(request)}:${limitConfig.keySuffix}`
+
+  if (!checkRateLimit(key, limitConfig.windowMs, limitConfig.maxRequests)) {
+    return NextResponse.json(
+      { error: 'Massa peticions. Torna-ho a intentar més tard.' },
+      { status: 429 }
+    )
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: [
+    '/',
+    '/app',
+    '/app/:path*',
+    '/api/:path*',
+  ],
 }
-

@@ -1,7 +1,8 @@
 import crypto from 'crypto'
 import { NextRequest } from 'next/server'
+import { SESSION_COOKIE_NAME } from '@/lib/auth-guard'
 
-const SESSION_COOKIE = 'xarxa_session'
+const SESSION_COOKIE = SESSION_COOKIE_NAME
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24
 
 const getSecret = () => {

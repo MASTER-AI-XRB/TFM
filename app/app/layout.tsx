@@ -46,7 +46,12 @@ export default function AppLayout({
     }) => {
       if (cancelled) return
       if (data?.needsNickname) {
-        router.push('/app/complete-profile')
+        // Handshake OAuth: middleware deixa passar /app sense nick si només hi ha next-auth.
+        // Soft-nav a complete-profile; el middleware ja protegeix el cas sense cookie.
+        clearStoredSession()
+        if (pathname !== '/app/complete-profile') {
+          router.replace('/app/complete-profile')
+        }
         return
       }
       if (data?.nickname && data?.socketToken) {
@@ -56,7 +61,7 @@ export default function AppLayout({
         return
       }
       firstFetchDone.current = false
-      router.push('/')
+      clearStoredSession()
     }
 
     const savedNickname = getStoredNickname()
@@ -65,6 +70,27 @@ export default function AppLayout({
         initialSyncDone.current = true
         setNickname(savedNickname)
         setSocketReady(true)
+      }
+      // Renovar cookie httpOnly si cal (middleware ja ha validat l’accés)
+      if (!firstFetchDone.current) {
+        firstFetchDone.current = true
+        void fetchSocketToken()
+          .then((data) => {
+            if (cancelled || !data) return
+            if (data.needsNickname) {
+              clearStoredSession()
+              router.replace('/app/complete-profile')
+              return
+            }
+            if (data.nickname && data.socketToken) {
+              setStoredSession(data.nickname, data.socketToken)
+              setNickname(data.nickname)
+              setSocketReady(true)
+            }
+          })
+          .catch(() => {
+            if (!cancelled) firstFetchDone.current = false
+          })
       }
     } else {
       initialSyncDone.current = true
@@ -80,11 +106,9 @@ export default function AppLayout({
           .catch(() => {
             if (!cancelled) {
               firstFetchDone.current = false
-              router.push('/')
+              clearStoredSession()
             }
           })
-      } else if (!session && status !== 'loading' && pathname !== '/app/complete-profile') {
-        router.push('/')
       }
     }
 
@@ -93,15 +117,6 @@ export default function AppLayout({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- session?.user?.id evita bucle quan useSession retorna nova referència
   }, [router, pathname, status, session?.user?.id, fetchSocketToken])
-
-  useEffect(() => {
-    if (nickname || pathname === '/app/complete-profile' || storedNickname) return
-    if (status !== 'loading' && !session) {
-      router.push('/')
-    }
-  }, [nickname, pathname, storedNickname, status, session, router])
-
-  // Refrescar token del socket quan l’usuari ja tenia nickname a localStorage (token pot estar caducat)
 
   const handleLogout = () => {
     fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)

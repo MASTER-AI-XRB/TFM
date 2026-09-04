@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import useSWR from 'swr'
@@ -26,34 +27,25 @@ export default function EditProductPage() {
   const [newImages, setNewImages] = useState<File[]>([])
   const [newPreviews, setNewPreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
   const router = useRouter()
   const { t } = useI18n()
   const nickname = useStoredNickname()
 
-  useEffect(() => {
-    if (nickname === null) return
-    if (!nickname) router.push('/')
-  }, [nickname, router])
-
-  const { data: product, error } = useSWR<Product>(
+  const { data: product, error: loadError, isLoading } = useSWR<Product>(
     productId && nickname ? `/api/products/${productId}` : null
   )
 
+  const unauthorized =
+    Boolean(loadError) ||
+    Boolean(product && nickname && product.user?.nickname !== nickname)
+
   useEffect(() => {
-    if (error) {
-      router.push('/app')
-      return
-    }
-    if (!product || !nickname) return
-    if (product.user?.nickname !== nickname) {
-      router.push('/app')
-      return
-    }
+    if (!product || !nickname || unauthorized) return
     setName(product.name)
     setDescription(product.description || '')
     setExistingImages(Array.isArray(product.images) ? product.images : [])
-  }, [product, nickname, error, router])
+  }, [product, nickname, unauthorized])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
@@ -63,7 +55,7 @@ export default function EditProductPage() {
     const accepted = files.slice(0, Math.max(0, remaining))
 
     if (accepted.length < files.length) {
-      setError(t('newProduct.maxImages'))
+      setFormError(t('newProduct.maxImages'))
     }
 
     setNewImages((prev) => [...prev, ...accepted])
@@ -88,30 +80,30 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setFormError('')
     setLoading(true)
 
     if (!name.trim()) {
-      setError(t('newProduct.nameRequired'))
+      setFormError(t('newProduct.nameRequired'))
       setLoading(false)
       return
     }
 
     const totalImages = existingImages.length + newImages.length
     if (totalImages === 0) {
-      setError(t('newProduct.addImage'))
+      setFormError(t('newProduct.addImage'))
       setLoading(false)
       return
     }
 
     if (totalImages > 4) {
-      setError(t('newProduct.maxImages'))
+      setFormError(t('newProduct.maxImages'))
       setLoading(false)
       return
     }
 
     if (!productId) {
-      setError(t('newProduct.userNotAuth'))
+      setFormError(t('newProduct.userNotAuth'))
       setLoading(false)
       return
     }
@@ -134,10 +126,10 @@ export default function EditProductPage() {
       if (response.ok) {
         router.push(`/app/products/${productId}`)
       } else {
-        setError(data.error || t('newProduct.createError'))
+        setFormError(data.error || t('newProduct.createError'))
       }
     } catch (err) {
-      setError(t('newProduct.connectionError'))
+      setFormError(t('newProduct.connectionError'))
     } finally {
       setLoading(false)
     }
@@ -145,6 +137,17 @@ export default function EditProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      {isLoading || nickname === null ? (
+        <p className="text-gray-600 dark:text-gray-300">{t('common.loading')}</p>
+      ) : unauthorized || !product ? (
+        <div className="space-y-4">
+          <p className="text-gray-700 dark:text-gray-300">{t('productDetail.notFound')}</p>
+          <Link href="/app" className="text-blue-600 dark:text-blue-400 hover:underline">
+            {t('productDetail.backToProducts')}
+          </Link>
+        </div>
+      ) : (
+      <>
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
         {t('common.edit')} {t('newProduct.title')}
       </h1>
@@ -234,9 +237,9 @@ export default function EditProductPage() {
             )}
           </div>
 
-          {error && (
+          {formError && (
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded">
-              {error}
+              {formError}
             </div>
           )}
 
@@ -258,6 +261,8 @@ export default function EditProductPage() {
           </div>
         </div>
       </form>
+      </>
+      )}
     </div>
   )
 }
