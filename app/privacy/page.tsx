@@ -2,6 +2,7 @@
 
 import { useI18n } from '@/lib/i18n'
 import Link from 'next/link'
+import { LEGAL_LAST_UPDATED_LABEL } from '@/lib/format-date'
 
 export default function PrivacyPage() {
   const { t } = useI18n()
@@ -14,11 +15,7 @@ export default function PrivacyPage() {
       
       <div className="prose prose-lg dark:prose-invert max-w-none">
         <p className="text-gray-600 dark:text-gray-400 mb-4">
-          <strong>{t('legal.privacy.lastUpdated')}:</strong> {new Date().toLocaleDateString('ca-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}
+          <strong>{t('legal.privacy.lastUpdated')}:</strong> {LEGAL_LAST_UPDATED_LABEL}
         </p>
 
         <section className="mb-8">

@@ -101,7 +101,7 @@ export function MobileNavCarousel({
   return (
     <nav
       className="flex md:hidden flex-1 min-w-0 items-center gap-0 px-0 max-md:landscape:hidden min-w-[88px] w-[88px]"
-      aria-label="Navegació principal"
+      aria-label="Navegació mòbil"
     >
       <button
         type="button"

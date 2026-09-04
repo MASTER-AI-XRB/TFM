@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useRef,
+  useMemo,
   type ReactNode,
 } from 'react'
 import { useRouter } from 'next/navigation'
@@ -204,8 +205,10 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
     }
   }, [ready])
 
+  const value = useMemo(() => ({ socket, connected }), [socket, connected])
+
   return (
-    <AppSocketContext.Provider value={{ socket, connected }}>
+    <AppSocketContext.Provider value={value}>
       {children}
     </AppSocketContext.Provider>
   )

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '@/lib/i18n'
 import { useOnboarding } from '@/lib/onboarding-context'
 
 const ONBOARDING_KEY = 'xarxa-onboarding-seen'
+const ONBOARDING_CHANGE_EVENT = 'xarxa-onboarding-change'
 
 const USE_CASE_KEYS = [
   'products',
@@ -22,9 +23,34 @@ const RESERVE_DETAIL_STEP = 6
 /** Passos: 0 = icona, 1 = titular, 2..5 = productes..reserva, 6 = Més detalls, 7..9 = xat..configuració */
 const ONBOARDING_STEPS = 1 + 1 + USE_CASE_KEYS.length + 1 // icon + header + 7 seccions + 1 pas "Més detalls"
 
-function getOnboardingSeen(): boolean {
+function markOnboardingSeen() {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(ONBOARDING_KEY, '1')
+  window.dispatchEvent(new Event(ONBOARDING_CHANGE_EVENT))
+}
+
+function subscribeOnboardingSeen(onStoreChange: () => void) {
+  if (typeof window === 'undefined') return () => {}
+  const handler = () => onStoreChange()
+  window.addEventListener(ONBOARDING_CHANGE_EVENT, handler)
+  window.addEventListener('storage', handler)
+  return () => {
+    window.removeEventListener(ONBOARDING_CHANGE_EVENT, handler)
+    window.removeEventListener('storage', handler)
+  }
+}
+
+function getOnboardingSeenSnapshot(): boolean {
   if (typeof window === 'undefined') return true
   return !!window.localStorage.getItem(ONBOARDING_KEY)
+}
+
+function useOnboardingSeen(): boolean {
+  return useSyncExternalStore(
+    subscribeOnboardingSeen,
+    getOnboardingSeenSnapshot,
+    () => true
+  )
 }
 
 const DROPDOWN_GAP = 4
@@ -34,12 +60,43 @@ const INFO_PANEL_MAX_WIDTH_PX = 352 // 22rem
 type HoleCircle = { x: number; y: number; r: number }
 type HoleBox = { left: number; top: number; width: number; height: number }
 
+function ReserveIcon({
+  className = 'w-5 h-5',
+  fill = 'none',
+}: {
+  className?: string
+  fill?: 'none' | 'currentColor'
+}) {
+  return (
+    <svg
+      className={className}
+      fill={fill}
+      stroke="currentColor"
+      viewBox={fill === 'currentColor' ? '0 0 20 20' : '0 0 24 24'}
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden
+    >
+      {fill === 'currentColor' ? (
+        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+      ) : (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+        />
+      )}
+    </svg>
+  )
+}
+
 export function AppInfoPopup() {
   const [open, setOpen] = useState(false)
-  const [showOnboarding, setShowOnboarding] = useState(false)
+  const onboardingSeen = useOnboardingSeen()
+  const showOnboarding = !onboardingSeen
   const [onboardingStep, setOnboardingStep] = useState(0)
   const [reserveDetailOpen, setReserveDetailOpen] = useState(false)
-  const [reserveDetailViewed, setReserveDetailViewed] = useState(false)
+  const reserveDetailViewedRef = useRef(false)
   const [isMobile, setIsMobile] = useState(false)
   const [anchorRect, setAnchorRect] = useState<{ bottom: number; right: number } | null>(null)
   const [buttonRect, setButtonRect] = useState<HoleCircle | null>(null)
@@ -49,13 +106,10 @@ export function AppInfoPopup() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const headerRef = useRef<HTMLElement | null>(null)
   const reserveDetailButtonRef = useRef<HTMLButtonElement>(null)
+  const reserveDetailDialogRef = useRef<HTMLDialogElement>(null)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const { t } = useI18n()
   const { setOnboardingActive } = useOnboarding()
-
-  useEffect(() => {
-    setShowOnboarding(!getOnboardingSeen())
-  }, [])
 
   useEffect(() => {
     setOnboardingActive(showOnboarding)
@@ -133,10 +187,7 @@ export function AppInfoPopup() {
   const prevOpenRef = useRef(false)
   useEffect(() => {
     if (prevOpenRef.current && !open && showOnboarding) {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(ONBOARDING_KEY, '1')
-        setShowOnboarding(false)
-      }
+      markOnboardingSeen()
     }
     prevOpenRef.current = open
   }, [open, showOnboarding])
@@ -144,33 +195,44 @@ export function AppInfoPopup() {
   const handleClosePopup = useCallback(() => {
     setOpen(false)
     setOnboardingStep(0)
-    if (showOnboarding && typeof window !== 'undefined') {
-      window.localStorage.setItem(ONBOARDING_KEY, '1')
-      setShowOnboarding(false)
+    if (showOnboarding) {
+      markOnboardingSeen()
     }
   }, [showOnboarding])
 
   const advanceOnboarding = useCallback(() => {
-    if (onboardingStep === RESERVE_DETAIL_STEP && !reserveDetailViewed) return
+    if (onboardingStep === RESERVE_DETAIL_STEP && !reserveDetailViewedRef.current) return
     if (onboardingStep < ONBOARDING_STEPS - 1) {
       setOnboardingStep((s) => s + 1)
     } else {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(ONBOARDING_KEY, '1')
-      }
-      setShowOnboarding(false)
+      markOnboardingSeen()
       setOpen(false)
       setOnboardingStep(0)
     }
-  }, [onboardingStep, reserveDetailViewed])
+  }, [onboardingStep])
 
   const prevReserveDetailOpen = useRef(false)
   useEffect(() => {
-    if (prevReserveDetailOpen.current && !reserveDetailOpen && showOnboarding && onboardingStep === RESERVE_DETAIL_STEP) {
-      setReserveDetailViewed(true)
+    if (
+      prevReserveDetailOpen.current &&
+      !reserveDetailOpen &&
+      showOnboarding &&
+      onboardingStep === RESERVE_DETAIL_STEP
+    ) {
+      reserveDetailViewedRef.current = true
     }
     prevReserveDetailOpen.current = reserveDetailOpen
   }, [reserveDetailOpen, showOnboarding, onboardingStep])
+
+  useEffect(() => {
+    const dialog = reserveDetailDialogRef.current
+    if (!dialog) return
+    if (reserveDetailOpen) {
+      if (!dialog.open) dialog.showModal()
+    } else if (dialog.open) {
+      dialog.close()
+    }
+  }, [reserveDetailOpen])
 
   useLayoutEffect(() => {
     if (!showOnboarding || !open || onboardingStep < 1) {
@@ -248,7 +310,7 @@ export function AppInfoPopup() {
       ) : stepRect ? (
         <>
           {/* Pas ≥1: forat rectangular amb mida del contingut; 4 bandes fosques per sobre del popup (z-[70]) */}
-          <div className="fixed inset-0 w-full h-full" style={{ zIndex: overlayZ, pointerEvents: 'none' }} aria-hidden>
+          <div className="fixed inset-0 w-full h-full" style={{ zIndex: overlayZ, pointerEvents: 'none' }}>
             <button
               type="button"
               className="absolute bg-black/60 border-0 p-0"
@@ -464,18 +526,13 @@ export function AppInfoPopup() {
       {/* Overlay d'onboarding després del panell per quedar per sobre (z-[70]) */}
       {typeof document !== 'undefined' && onboardingOverlay && createPortal(onboardingOverlay, document.body)}
       {/* Popup de detall de reserves (dos tipus); es tanca amb el botó */}
-      {reserveDetailOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50"
-          onClick={() => setReserveDetailOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="reserve-detail-title"
-        >
-          <div
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <dialog
+        ref={reserveDetailDialogRef}
+        className="fixed inset-0 z-[80] m-auto max-h-[85vh] w-full max-w-md rounded-lg border border-gray-200 bg-white p-0 shadow-xl dark:border-gray-700 dark:bg-gray-800 open:flex open:flex-col backdrop:bg-black/50"
+        aria-labelledby="reserve-detail-title"
+        onClose={() => setReserveDetailOpen(false)}
+      >
+          <div className="flex max-h-[85vh] w-full flex-col overflow-hidden">
             <div className="px-4 py-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 shrink-0">
               <h3 id="reserve-detail-title" className="text-sm font-semibold text-gray-900 dark:text-white">
                 {t('info.reserveDetailTitle')}
@@ -484,25 +541,6 @@ export function AppInfoPopup() {
                 {t('info.reserveDetailIntro')}
               </p>
             </div>
-            {/* Icona de reservar (bookmark outline) sense activar, reutilitzada als títols i a la descripció */}
-            {(() => {
-              const ReserveIcon = ({ className = 'w-5 h-5', fill = 'none' }: { className?: string; fill?: 'none' | 'currentColor' }) => (
-                <svg
-                  className={className}
-                  fill={fill}
-                  stroke="currentColor"
-                  viewBox={fill === 'currentColor' ? '0 0 20 20' : '0 0 24 24'}
-                  preserveAspectRatio="xMidYMid meet"
-                  aria-hidden
-                >
-                  {fill === 'currentColor' ? (
-                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  )}
-                </svg>
-              )
-              return (
             <div className="overflow-y-auto flex-1 min-h-0 px-4 py-3 space-y-3">
               <div className="text-sm border-l-2 border-blue-200 dark:border-blue-700 pl-3 py-0.5">
                 <p className="font-medium text-gray-900 dark:text-white inline-flex items-center gap-1 flex-wrap">
@@ -531,8 +569,6 @@ export function AppInfoPopup() {
                 </p>
               </div>
             </div>
-              )
-            })()}
             <div className="px-4 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 shrink-0">
               <button
                 type="button"
@@ -543,9 +579,7 @@ export function AppInfoPopup() {
               </button>
             </div>
           </div>
-        </div>,
-        document.body
-      )}
+      </dialog>
     </div>
   )
 }

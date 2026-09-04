@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -24,7 +24,7 @@ export default function EditProductPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [existingImages, setExistingImages] = useState<string[]>([])
-  const [newImages, setNewImages] = useState<File[]>([])
+  const newImagesRef = useRef<File[]>([])
   const [newPreviews, setNewPreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [formError, setFormError] = useState('')
@@ -45,20 +45,22 @@ export default function EditProductPage() {
     setName(product.name)
     setDescription(product.description || '')
     setExistingImages(Array.isArray(product.images) ? product.images : [])
+    newImagesRef.current = []
+    setNewPreviews([])
   }, [product, nickname, unauthorized])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
 
     const files = Array.from(e.target.files)
-    const remaining = 4 - (existingImages.length + newImages.length)
+    const remaining = 4 - (existingImages.length + newPreviews.length)
     const accepted = files.slice(0, Math.max(0, remaining))
 
     if (accepted.length < files.length) {
       setFormError(t('newProduct.maxImages'))
     }
 
-    setNewImages((prev) => [...prev, ...accepted])
+    newImagesRef.current = [...newImagesRef.current, ...accepted]
 
     accepted.forEach((file) => {
       const reader = new FileReader()
@@ -74,46 +76,42 @@ export default function EditProductPage() {
   }
 
   const removeNewImage = (index: number) => {
-    setNewImages(newImages.filter((_, i) => i !== index))
+    newImagesRef.current = newImagesRef.current.filter((_, i) => i !== index)
     setNewPreviews(newPreviews.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
-    setLoading(true)
 
     if (!name.trim()) {
       setFormError(t('newProduct.nameRequired'))
-      setLoading(false)
       return
     }
 
-    const totalImages = existingImages.length + newImages.length
+    const totalImages = existingImages.length + newPreviews.length
     if (totalImages === 0) {
       setFormError(t('newProduct.addImage'))
-      setLoading(false)
       return
     }
 
     if (totalImages > 4) {
       setFormError(t('newProduct.maxImages'))
-      setLoading(false)
       return
     }
 
     if (!productId) {
       setFormError(t('newProduct.userNotAuth'))
-      setLoading(false)
       return
     }
 
+    setLoading(true)
     try {
       const formData = new FormData()
       formData.append('name', name)
       formData.append('description', description)
       formData.append('existingImages', JSON.stringify(existingImages))
-      newImages.forEach((image) => {
+      newImagesRef.current.forEach((image) => {
         formData.append('images', image)
       })
 
@@ -197,7 +195,7 @@ export default function EditProductPage() {
             {(existingImages.length > 0 || newPreviews.length > 0) && (
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {existingImages.map((image, index) => (
-                  <div key={`existing-${index}`} className="relative h-48">
+                  <div key={image} className="relative h-48">
                     <Image
                       src={image}
                       alt={`Existing ${index + 1}`}
@@ -207,6 +205,7 @@ export default function EditProductPage() {
                     />
                     <button
                       type="button"
+                      aria-label={t('newProduct.removeImage') || `Eliminar imatge ${index + 1}`}
                       onClick={() => removeExistingImage(index)}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 z-10"
                     >
@@ -215,7 +214,7 @@ export default function EditProductPage() {
                   </div>
                 ))}
                 {newPreviews.map((preview, index) => (
-                  <div key={`new-${index}`} className="relative h-48">
+                  <div key={preview} className="relative h-48">
                     <Image
                       src={preview}
                       alt={`Preview ${index + 1}`}
@@ -226,6 +225,7 @@ export default function EditProductPage() {
                     />
                     <button
                       type="button"
+                      aria-label={t('newProduct.removeImage') || `Eliminar imatge ${index + 1}`}
                       onClick={() => removeNewImage(index)}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 z-10"
                     >

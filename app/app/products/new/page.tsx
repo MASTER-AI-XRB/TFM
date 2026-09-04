@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useI18n } from '@/lib/i18n'
@@ -8,7 +8,7 @@ import { useI18n } from '@/lib/i18n'
 export default function NewProductPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [images, setImages] = useState<File[]>([])
+  const imagesRef = useRef<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -18,13 +18,12 @@ export default function NewProductPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files).slice(0, 4)
-      if (files.length + images.length > 4) {
+      if (files.length + previews.length > 4) {
         setError(t('newProduct.maxImages'))
         return
       }
-      setImages([...images, ...files])
-      
-      // Crear previews
+      imagesRef.current = [...imagesRef.current, ...files]
+
       files.forEach((file) => {
         const reader = new FileReader()
         reader.onloadend = () => {
@@ -36,32 +35,30 @@ export default function NewProductPage() {
   }
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index))
+    imagesRef.current = imagesRef.current.filter((_, i) => i !== index)
     setPreviews(previews.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
     if (!name.trim()) {
       setError(t('newProduct.nameRequired'))
-      setLoading(false)
       return
     }
 
-    if (images.length === 0) {
+    if (imagesRef.current.length === 0) {
       setError(t('newProduct.addImage'))
-      setLoading(false)
       return
     }
 
+    setLoading(true)
     try {
       const formData = new FormData()
       formData.append('name', name)
       formData.append('description', description)
-      images.forEach((image) => {
+      imagesRef.current.forEach((image) => {
         formData.append('images', image)
       })
 
@@ -134,7 +131,7 @@ export default function NewProductPage() {
             {previews.length > 0 && (
               <div className="mt-4 grid grid-cols-2 gap-4">
                 {previews.map((preview, index) => (
-                  <div key={index} className="relative h-48">
+                  <div key={preview} className="relative h-48">
                     <Image
                       src={preview}
                       alt={`Preview ${index + 1}`}
@@ -184,4 +181,3 @@ export default function NewProductPage() {
     </div>
   )
 }
-

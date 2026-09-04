@@ -1,8 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-
-const ONBOARDING_KEY = 'xarxa-onboarding-seen'
+import { createContext, useContext, useState, useMemo, type ReactNode } from 'react'
 
 type OnboardingContextValue = {
   isOnboardingActive: boolean
@@ -12,17 +10,14 @@ type OnboardingContextValue = {
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
-  const [isOnboardingActive, setIsOnboardingActive] = useState(true)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (window.localStorage.getItem(ONBOARDING_KEY)) {
-      setIsOnboardingActive(false)
-    }
-  }, [])
+  const [isOnboardingActive, setIsOnboardingActive] = useState(false)
+  const value = useMemo(
+    () => ({ isOnboardingActive, setOnboardingActive: setIsOnboardingActive }),
+    [isOnboardingActive]
+  )
 
   return (
-    <OnboardingContext.Provider value={{ isOnboardingActive, setOnboardingActive: setIsOnboardingActive }}>
+    <OnboardingContext.Provider value={value}>
       {children}
     </OnboardingContext.Provider>
   )

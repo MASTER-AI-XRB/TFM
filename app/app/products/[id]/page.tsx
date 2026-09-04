@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
 import TranslateButton from '@/components/TranslateButton'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
+import { formatDateLongCa } from '@/lib/format-date'
 import { logError } from '@/lib/client-logger'
 
 interface Product {
@@ -408,11 +409,7 @@ export default function ProductDetailPage() {
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t('productDetail.publishedOn')}{' '}
-                {new Date(product.createdAt).toLocaleDateString('ca-ES', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {formatDateLongCa(product.createdAt)}
               </p>
             </div>
           </div>

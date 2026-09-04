@@ -7,8 +7,8 @@ import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
 import TranslateButton from '@/components/TranslateButton'
-import { getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
+import { useStoredViewMode } from '@/lib/use-stored-view-mode'
 import { logError, logInfo } from '@/lib/client-logger'
 import {
   canReserveProduct,
@@ -34,10 +34,7 @@ interface Product {
 export default function ProductsPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
-  useEffect(() => {
-    setViewMode(getStoredViewMode())
-  }, [])
+  const [viewMode, setViewMode] = useStoredViewMode()
   const { theme } = useTheme()
   const [filters, setFilters] = useState({
     name: '',
@@ -305,7 +302,6 @@ export default function ProductsPage() {
           onClick={() => {
             const next = viewMode === 'grid' ? 'list' : 'grid'
             setViewMode(next)
-            setStoredViewMode(next)
           }}
           className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           title={viewMode === 'grid' ? t('products.switchToListView') : t('products.switchToGridView')}

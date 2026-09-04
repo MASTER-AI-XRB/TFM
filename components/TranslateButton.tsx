@@ -11,33 +11,27 @@ interface TranslateButtonProps {
 
 export default function TranslateButton({ text, className = '' }: TranslateButtonProps) {
   const { locale, translateText, t } = useI18n()
-  const [translatedText, setTranslatedText] = useState<string | null>(null)
-  const [translatedLocale, setTranslatedLocale] = useState<string | null>(null)
+  const [translation, setTranslation] = useState<{ text: string; locale: string } | null>(null)
   const [isTranslating, setIsTranslating] = useState(false)
   const [showOriginal, setShowOriginal] = useState(true)
 
-  // Reiniciar traducció quan canvia l'idioma
   useEffect(() => {
-    if (translatedLocale && translatedLocale !== locale) {
-      setTranslatedText(null)
-      setTranslatedLocale(null)
+    if (translation && translation.locale !== locale) {
+      setTranslation(null)
       setShowOriginal(true)
     }
-  }, [locale, translatedLocale])
+  }, [locale, translation])
 
   const handleTranslate = async () => {
-    // Si ja hi ha una traducció per al mateix idioma, alternar entre original i traduït
-    if (translatedText && translatedLocale === locale) {
+    if (translation && translation.locale === locale) {
       setShowOriginal(!showOriginal)
       return
     }
 
-    // Si hi ha una traducció però és per a un altre idioma, fer una nova traducció
     setIsTranslating(true)
     try {
       const translated = await translateText(text, locale)
-      setTranslatedText(translated)
-      setTranslatedLocale(locale)
+      setTranslation({ text: translated, locale })
       setShowOriginal(false)
     } catch (error) {
       logError('Error translating:', error)
@@ -50,7 +44,7 @@ export default function TranslateButton({ text, className = '' }: TranslateButto
 
   return (
     <span className="inline-flex items-center gap-2 flex-wrap">
-      <span>{showOriginal ? text : translatedText || text}</span>
+      <span>{showOriginal ? text : translation?.text || text}</span>
       <button
         onClick={handleTranslate}
         disabled={isTranslating}
@@ -77,4 +71,3 @@ export default function TranslateButton({ text, className = '' }: TranslateButto
     </span>
   )
 }
-

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 
 export default function DevConsole() {
-  const [logs, setLogs] = useState<Array<{ type: string; message: string; timestamp: string }>>([])
+  const [logs, setLogs] = useState<Array<{ id: string; type: string; message: string; timestamp: string }>>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
   const [isLocal, setIsLocal] = useState(false)
@@ -38,7 +38,8 @@ export default function DevConsole() {
       setLogs(prev => [...prev.slice(-49), {
         type,
         message,
-        timestamp: new Date().toLocaleTimeString()
+        timestamp: new Date().toLocaleTimeString(),
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       }])
     }
 
@@ -135,9 +136,9 @@ export default function DevConsole() {
                     {logs.length === 0 ? (
                       <div className="text-gray-500 text-center py-4">No hi ha logs encara</div>
                     ) : (
-                      logs.map((log, index) => (
+                      logs.map((log) => (
                         <div
-                          key={index}
+                          key={log.id}
                           className={`${
                             log.type === 'error' ? 'text-red-400' :
                             log.type === 'warn' ? 'text-yellow-400' :

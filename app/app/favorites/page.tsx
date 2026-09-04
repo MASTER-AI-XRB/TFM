@@ -6,8 +6,8 @@ import Image from 'next/image'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import TranslateButton from '@/components/TranslateButton'
-import { getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
+import { useStoredViewMode } from '@/lib/use-stored-view-mode'
 import { logError } from '@/lib/client-logger'
 import {
   canUnreserveProduct,
@@ -30,7 +30,7 @@ interface Product {
 }
 
 export default function FavoritesPage() {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [viewMode, setViewMode] = useStoredViewMode()
   const [refreshSpinning, setRefreshSpinning] = useState(false)
   const nickname = useStoredNickname()
   const { t } = useI18n()
@@ -42,10 +42,6 @@ export default function FavoritesPage() {
   } = useSWR<Product[]>(nickname ? '/api/favorites' : null, {
     revalidateOnFocus: true,
   })
-
-  useEffect(() => {
-    setViewMode(getStoredViewMode())
-  }, [])
 
   useEffect(() => {
     const onProductState = (e: Event) => {
@@ -157,7 +153,6 @@ export default function FavoritesPage() {
           onClick={() => {
             const next = viewMode === 'grid' ? 'list' : 'grid'
             setViewMode(next)
-            setStoredViewMode(next)
           }}
           className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           title={viewMode === 'grid' ? t('products.switchToListView') : t('products.switchToGridView')}

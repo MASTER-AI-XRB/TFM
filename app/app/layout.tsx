@@ -150,7 +150,10 @@ export default function AppLayout({
     <AppSocketProvider ready={socketReady}>
     <OnboardingProvider>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700">
+      <nav
+        className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700"
+        aria-label="Barra superior"
+      >
         <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center gap-2 md:gap-4">
             {/* Logo */}

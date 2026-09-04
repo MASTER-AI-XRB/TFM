@@ -7,8 +7,9 @@ import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
 import TranslateButton from '@/components/TranslateButton'
-import { getStoredViewMode, setStoredViewMode } from '@/lib/client-session'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
+import { useStoredViewMode } from '@/lib/use-stored-view-mode'
+import { formatDateShortCa } from '@/lib/format-date'
 import { logError } from '@/lib/client-logger'
 import {
   canReserveProduct,
@@ -31,7 +32,7 @@ interface Product {
 }
 
 export default function MyProductsPage() {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [viewMode, setViewMode] = useStoredViewMode()
   const [refreshSpinning, setRefreshSpinning] = useState(false)
   const nickname = useStoredNickname()
   const { t } = useI18n()
@@ -44,10 +45,6 @@ export default function MyProductsPage() {
   } = useSWR<Product[]>(nickname ? '/api/products/my' : null, {
     revalidateOnFocus: true,
   })
-
-  useEffect(() => {
-    setViewMode(getStoredViewMode())
-  }, [])
 
   useEffect(() => {
     const onProductState = (e: Event) => {
@@ -181,7 +178,6 @@ export default function MyProductsPage() {
           onClick={() => {
             const next = viewMode === 'grid' ? 'list' : 'grid'
             setViewMode(next)
-            setStoredViewMode(next)
           }}
           className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           title={viewMode === 'grid' ? t('products.switchToListView') : t('products.switchToGridView')}
@@ -562,11 +558,7 @@ export default function MyProductsPage() {
                 <div className="flex justify-between items-center mt-4 sm:mt-6">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     {t('products.publishedOn')}{' '}
-                    {new Date(product.createdAt).toLocaleDateString('ca-ES', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {formatDateShortCa(product.createdAt)}
                   </span>
                   <Link
                     href={`/app/products/${product.id}`}

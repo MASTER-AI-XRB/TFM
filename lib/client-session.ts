@@ -45,4 +45,5 @@ export const getStoredViewMode = (): ViewMode => {
 export const setStoredViewMode = (mode: ViewMode) => {
   if (!isBrowser) return
   window.localStorage.setItem(VIEW_MODE_KEY, mode)
+  window.dispatchEvent(new Event('xarxa-view-mode-change'))
 }

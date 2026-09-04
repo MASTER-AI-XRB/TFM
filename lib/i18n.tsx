@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react'
 import { logError, logWarn } from '@/lib/client-logger'
 
 export type Locale = 'ca' | 'es' | 'en'
@@ -880,15 +880,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const setLocale = (newLocale: Locale) => {
+  const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale)
     localStorage.setItem('locale', newLocale)
-  }
+  }, [])
 
-  const t = (key: string, params?: Record<string, string | number>): string =>
-    formatTranslation(locale, key, params)
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number>): string =>
+      formatTranslation(locale, key, params),
+    [locale]
+  )
 
-  const translateText = async (text: string, targetLocale?: Locale): Promise<string> => {
+  const translateText = useCallback(async (text: string, targetLocale?: Locale): Promise<string> => {
     const target = targetLocale || locale
     
     try {
@@ -926,13 +929,26 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       logError('Error translating text:', error)
       return text
     }
-  }
+  }, [locale])
+
+  const value = useMemo(
+    () => ({ locale, setLocale, t, translateText }),
+    [locale, setLocale, t, translateText]
+  )
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t, translateText }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   )
+}
+
+const fallbackI18n: I18nContextType = {
+  locale: 'ca',
+  setLocale: () => {},
+  t: (key: string, params?: Record<string, string | number>) =>
+    formatTranslation('ca', key, params),
+  translateText: async (text: string) => text,
 }
 
 export function useI18n() {
@@ -941,13 +957,7 @@ export function useI18n() {
     if (process.env.NODE_ENV !== 'production') {
       logWarn('useI18n must be used within I18nProvider')
     }
-    return {
-      locale: 'ca' as Locale,
-      setLocale: () => {},
-      t: (key: string, params?: Record<string, string | number>) =>
-        formatTranslation('ca', key, params),
-      translateText: async (text: string) => text,
-    }
+    return fallbackI18n
   }
   return context
 }

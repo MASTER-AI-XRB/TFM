@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useEffect } from 'react'
 import { Notification } from '@/components/NotificationToast'
 import NotificationToast from '@/components/NotificationToast'
 import { logError } from '@/lib/client-logger'
@@ -173,23 +173,39 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setAlerts([])
   }, [])
 
+  const value = useMemo(
+    () => ({
+      showNotification,
+      showInfo,
+      showSuccess,
+      showWarning,
+      showError,
+      requestPermission,
+      alerts,
+      addAlert,
+      markAlertRead,
+      markAllAlertsRead,
+      removeAlert,
+      removeAllAlerts,
+    }),
+    [
+      showNotification,
+      showInfo,
+      showSuccess,
+      showWarning,
+      showError,
+      requestPermission,
+      alerts,
+      addAlert,
+      markAlertRead,
+      markAllAlertsRead,
+      removeAlert,
+      removeAllAlerts,
+    ]
+  )
+
   return (
-    <NotificationContext.Provider
-      value={{
-        showNotification,
-        showInfo,
-        showSuccess,
-        showWarning,
-        showError,
-        requestPermission,
-        alerts,
-        addAlert,
-        markAlertRead,
-        markAllAlertsRead,
-        removeAlert,
-        removeAllAlerts,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
       <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
         {notifications.map((notification, index) => (
