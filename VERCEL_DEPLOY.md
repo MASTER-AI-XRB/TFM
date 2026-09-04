@@ -38,7 +38,7 @@ datasource db {
 }
 ```
 
-**Nota**: Después del deploy, puedes mantener SQLite para desarrollo local si quieres.
+El schema del repositorio ya usa PostgreSQL tanto en local como en producción.
 
 ## Paso 2: Desplegar en Vercel
 

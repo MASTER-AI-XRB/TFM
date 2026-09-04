@@ -9,7 +9,7 @@
     "start": "cross-env NODE_ENV=production node server.js",
     "start:socket": "node socket-server.js",
     "lint": "next lint",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "pnpm test:unit && pnpm test:e2e",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
@@ -32,17 +32,17 @@
     "bcryptjs": "^2.4.3",
     "canvas-confetti": "^1.9.4",
     "franc": "^6.2.0",
-    "next": "^15.5.18",
+    "next": "15.5.24",
     "next-auth": "^4.24.15",
     "next-intl": "^4.6.1",
-    "nodemailer": "^7.0.11",
+    "nodemailer": "^9.0.1",
     "prisma": "^5.7.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "swr": "^2.5.1",
-    "uuid": "^9.0.1",
+    "uuid": "^11.1.1",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
@@ -59,9 +59,9 @@
     "autoprefixer": "^10.4.16",
     "cross-env": "^7.0.3",
     "eslint": "^8.56.0",
-    "eslint-config-next": "15.5.18",
+    "eslint-config-next": "15.5.24",
     "jsdom": "^27.4.0",
-    "postcss": "^8.4.32",
+    "postcss": "^8.5.26",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
@@ -69,13 +69,22 @@
   "description": "Plataforma vecinal de préstamo e intercambio de productos, con catálogo, reservas y chat en tiempo real. Trabajo de Fin de Máster.",
   "main": "next.config.js",
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
+    "node": ">=18.18.0",
+    "pnpm": ">=9.0.0"
   },
   "directories": {
     "lib": "lib"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.26",
+      "nodemailer": "9.0.1",
+      "minimatch": "9.0.7",
+      "sharp": "0.35.0",
+      "uuid": "11.1.1"
+    }
+  }
 }

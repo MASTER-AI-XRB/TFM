@@ -93,4 +93,4 @@ En **Vercel** hace falta:
   - `Web Push enviat: <userId>` → notificación enviada como push (navegador).
   - `VAPID no configurat` → añade las claves VAPID en Railway.
   - `Cap subscripció push` → el usuario no ha activado notificaciones en el navegador o no se ha guardado la suscripción (debe entrar en Configuración y activarlas).
-- **App abierta**: Si el socket no conecta (401 en `socket-token`), el usuario no recibirá notificaciones in-app; el login y el token de Socket.IO deben ser correctos.
+- **App abierta**: Si el socket no conecta (401 en `POST /api/auth/socket-token`), el usuario no recibirá notificaciones in-app. El endpoint exige sesión (cookie HMAC o NextAuth) y método POST; un GET no emite token.

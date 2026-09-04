@@ -59,6 +59,10 @@ Si ves un error CORS, el problema es la configuración de `NEXT_PUBLIC_ALLOWED_O
 
 ### 7. Problemas comunes y soluciones
 
+#### Error 401 en `POST /api/auth/socket-token`
+**Causa**: no hay sesión válida, o se llama el endpoint con GET  
+**Solución**: inicia sesión (cookie HMAC o Google). El cliente debe usar **POST** (`lib/use-socket-token.ts`). Un GET no emite token.
+
 #### Error: "CORS policy"
 **Causa**: Railway no permite el origen de Vercel  
 **Solución**: añade la URL de Vercel a `NEXT_PUBLIC_ALLOWED_ORIGINS` en Railway

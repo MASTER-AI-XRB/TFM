@@ -4,20 +4,20 @@ Esta guía te ayuda a desplegar la aplicación para uso global en producción.
 
 ## Requisitos previos
 
-- Node.js 18+ instalado
-- Base de datos PostgreSQL (recomendado) o MySQL
-- Dominio configurado con SSL/HTTPS
-- Servidor con suficiente memoria y CPU
+- Node.js **18.18+** (20+ recomendado) y **pnpm**
+- Base de datos **PostgreSQL** (Neon u otro; el schema del repo ya es `postgresql`)
+- HTTPS (Vercel lo incluye; Railway también)
+- Servidor Socket.IO aparte si no usas el proceso único `server.js` (en producción: Railway)
 
 ## Paso 1: Preparar el código
 
-### 1.1 Actualizar el schema de base de datos
+### 1.1 Schema de Prisma
 
-Para producción, cambia `prisma/schema.prisma`:
+El datasource ya está en PostgreSQL:
 
 ```prisma
 datasource db {
-  provider = "postgresql"  // Cambia de "sqlite" a "postgresql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 ```
@@ -28,10 +28,12 @@ Crea un archivo `.env` con:
 
 ```env
 DATABASE_URL="postgresql://usuario:contraseña@host:5432/nombre_base_datos?schema=public"
+AUTH_SECRET="genera-un-secreto-largo"
 NODE_ENV=production
 PORT=3000
 SOCKET_PORT=3001
 NEXT_PUBLIC_APP_URL=https://tudominio.com
+NEXT_PUBLIC_SOCKET_URL=https://tu-servidor.up.railway.app
 NEXT_PUBLIC_ALLOWED_ORIGINS=https://tudominio.com,https://www.tudominio.com
 ```
 

@@ -66,8 +66,8 @@ VAPID_PRIVATE_KEY=...
 
 Railway detectará automáticamente:
 - **Node.js** como runtime
-- instalación de dependencias
-- **npx prisma generate** (gracias al script `postinstall`)
+- instalación de dependencias con **pnpm**
+- **pnpm exec prisma generate** (también vía script `postinstall`)
 
 Si hay problemas, configura manualmente:
 

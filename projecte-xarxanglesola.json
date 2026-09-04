@@ -1,11 +1,12 @@
 {
   "name": "Xarxa Anglesola - Intercambio de Productos",
-  "description": "Aplicación web de préstamo e intercambio de productos entre vecinos, con catálogo, reservas, chat en tiempo real, Google OAuth, notificaciones push y derechos RGPD. Stack: Next.js 14, TypeScript, Prisma, PostgreSQL, Socket.IO, Tailwind. Desplegada en Vercel + Railway. TFM.",
+  "description": "Aplicación web de préstamo e intercambio de productos entre vecinos, con catálogo, reservas, chat en tiempo real, Google OAuth, notificaciones push y derechos RGPD. Stack: Next.js 15.5, React 19, TypeScript, Prisma, PostgreSQL, Socket.IO, Tailwind, pnpm. Desplegada en Vercel + Railway. TFM.",
   "status": "actiu",
   "links": [
     { "title": "Página web", "url": "https://xarxanglesola.vercel.app/" },
     { "title": "Repositorio", "url": "https://github.com/MASTER-AI-XRB/XARXANGLESOLA" },
+    { "title": "Snapshot TFM", "url": "https://github.com/MASTER-AI-XRB/TFM" },
     { "title": "Presentación TFM", "url": "docs/presentacio.html" }
   ],
-  "tags": ["nextjs", "typescript", "prisma", "socket.io", "tailwind", "intercambio-productos", "chat-tiempo-real"]
+  "tags": ["nextjs", "react19", "pnpm", "typescript", "prisma", "socket.io", "tailwind", "intercambio-productos", "chat-tiempo-real"]
 }

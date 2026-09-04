@@ -2,6 +2,15 @@
 
 Este documento describe las mejoras implementadas para preparar la aplicación para uso global.
 
+## 2026 — Stack, auth y supply-chain
+
+- Next.js **15.5.24**, React **19**, NextAuth **4.24.15**, Nodemailer **9**, PostCSS **8.5.26**
+- Token de Socket.IO: **POST** `/api/auth/socket-token` (ya no GET); sesión HMAC o NextAuth
+- Uploads sin **multer**; Vercel Blob en producción
+- Gestor **pnpm**; `engines.node` ≥ 18.18; `pnpm.overrides` (`postcss`, `nodemailer`, `minimatch`, `sharp`, `uuid`)
+- Calidad: React Doctor (código UI/Next) y `pnpm audit` (CVE) son criterios distintos
+- Snapshot académico del código: `MASTER-AI-XRB/TFM`; repo de trabajo: `MASTER-AI-XRB/XARXANGLESOLA`
+
 ## Seguridad
 
 ### Validaciones y sanitización
@@ -69,16 +78,13 @@ Este documento describe las mejoras implementadas para preparar la aplicación p
 
 ## Próximos pasos recomendados
 
-1. **PostgreSQL**: el schema ya usa PostgreSQL
-2. **HTTPS**: certificado SSL
-3. **Backups**: automáticos
-4. **Monitoring**: Sentry o similar
-5. **Cloud storage**: imágenes en Blob (ya en producción)
-6. **Redis**: rate limiting a mayor escala
+1. **Backups** automáticos de PostgreSQL
+2. **Monitoring**: Sentry o similar
+3. **Redis**: rate limiting a mayor escala (y adaptador Socket.IO si hay varias instancias)
 
 ## Notas importantes
 
-- La aplicación está preparada para producción; hay que configurar PostgreSQL antes de desplegar
+- PostgreSQL, HTTPS (Vercel) y Blob ya están en el despliegue actual
 - En local las imágenes pueden guardarse en disco; en producción se usa Vercel Blob
 - El rate limiting es básico; a mayor escala, usa Redis
 - Revisa `PRODUCTION_CHECKLIST.md` para las tareas pendientes

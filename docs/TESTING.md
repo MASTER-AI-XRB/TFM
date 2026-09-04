@@ -79,3 +79,16 @@ Si en local tienes `NEXT_PUBLIC_SOCKET_URL=http://localhost:3001`, las notificac
 ```
 pnpm test:db:reset
 ```
+
+## Calidad de código y dependencias
+
+Son **dos criterios distintos**; uno en verde no implica el otro.
+
+| Comando | Qué cubre |
+|---------|-----------|
+| `pnpm test:unit` / `pnpm test:e2e` | Comportamiento (Vitest + Playwright) |
+| `pnpm dlx react-doctor@latest` | Reglas de código React/Next (no CVE) |
+| `pnpm audit` | CVE del árbol de dependencias npm (puede hacer timeout; reintentar) |
+
+`pnpm.overrides` en `package.json` fija versiones de supply-chain (`postcss`, `nodemailer`, `sharp`, `uuid`, `minimatch`).
+```

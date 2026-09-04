@@ -8,6 +8,7 @@ Este repositorio es el **Trabajo de Fin de Máster** (máster agnóstico en tecn
 |--------|-----|
 | **App en funcionamiento** | [https://xarxanglesola.vercel.app](https://xarxanglesola.vercel.app) |
 | **Código (GitHub)** | [https://github.com/MASTER-AI-XRB/XARXANGLESOLA](https://github.com/MASTER-AI-XRB/XARXANGLESOLA) |
+| **Snapshot TFM** | [https://github.com/MASTER-AI-XRB/TFM](https://github.com/MASTER-AI-XRB/TFM) |
 | **Presentación (slides)** | [docs/presentacio.html](docs/presentacio.html) — abre el archivo en el navegador |
 
 Si el repositorio es privado, hay que conceder acceso a `mouredev@gmail.com`.
@@ -33,20 +34,21 @@ Idiomas de la interfaz: **catalán**, castellano e inglés. Tema claro / oscuro.
 
 | Capa | Tecnología |
 |------|------------|
-| Framework | Next.js 14 (App Router), React 18, TypeScript |
+| Framework | Next.js 15.5 (App Router), React 19, TypeScript |
 | Estilos | Tailwind CSS (tema `primary` sky, `darkMode: class`) |
-| Auth | Sesión propia (cookie HMAC) + NextAuth (Google OAuth) |
-| API | Route Handlers en `app/api/` |
+| Auth | Sesión propia (cookie HMAC HttpOnly) + NextAuth 4.24 (Google OAuth) |
+| API | Route Handlers en `app/api/` (mutaciones por POST; p. ej. `/api/auth/socket-token`) |
 | Tiempo real | Socket.IO (`server.js` en local; `socket-server.js` en Railway) |
 | Base de datos | PostgreSQL + Prisma 5 |
 | Archivos | Vercel Blob (producción); `public/uploads/` en desarrollo |
 | Notificaciones | Web Push (VAPID) + toasts in-app |
 | i18n | `next-intl` + proveedor propio (`lib/i18n.tsx`), mensajes en `messages/` |
-| Correo | Nodemailer (recuperación de contraseña) |
+| Correo | Nodemailer 9 (recuperación de contraseña) |
 | Tests | Vitest (unitario) + Playwright (e2e) |
+| Calidad | React Doctor (código UI/Next) + `pnpm audit` (CVE del árbol npm; criterio distinto) |
 | Despliegue | Vercel (web/API) + Railway (Socket.IO) + Neon/PostgreSQL |
 
-Node 18+ (`package.json` declara `engines.node >= 18`). Gestor de paquetes: **pnpm**.
+Node **18.18+** (requisito de Next 15.5; `engines.node` en `package.json`). Gestor de paquetes: **pnpm** (no npm/yarn). Hay `pnpm.overrides` de supply-chain (`postcss`, `nodemailer`, `sharp`, `uuid`, `minimatch`).
 
 ---
 
@@ -54,7 +56,7 @@ Node 18+ (`package.json` declara `engines.node >= 18`). Gestor de paquetes: **pn
 
 ### Requisitos
 
-- Node.js 18 o superior
+- Node.js **18.18** o superior (20+ recomendado)
 - pnpm
 - PostgreSQL (local o alojado: Neon, Supabase, Railway, …)
 
@@ -102,6 +104,8 @@ pnpm dev
 | `pnpm test:unit` | Tests Vitest |
 | `pnpm test:e2e` | Tests Playwright |
 | `pnpm lint` | ESLint |
+| `pnpm dlx react-doctor@latest` | Auditoría React/Next (reglas de código; no sustituye `pnpm audit`) |
+| `pnpm audit` | CVE del registro npm (puede hacer timeout; reintentar) |
 | `pnpm generate-vapid` | Claves Web Push |
 | `pnpm db:studio` | Prisma Studio |
 
@@ -155,7 +159,7 @@ Diagramas de flujo (Mermaid): [docs/DIAGRAMA_APP.md](docs/DIAGRAMA_APP.md).
 
 | Área | Qué puede hacer el usuario |
 |------|----------------------------|
-| **Autenticación** | Registro / login con nickname + email + contraseña; «Continuar con Google»; completar nickname después de OAuth; recuperar contraseña por correo; vincular / desvincular Google |
+| **Autenticación** | Registro / login con nickname + email + contraseña; «Continuar con Google»; completar nickname después de OAuth; recuperar contraseña por correo; vincular / desvincular Google; token de Socket.IO vía **POST** `/api/auth/socket-token` |
 | **Catálogo** | Listar productos (cuadrícula o lista), filtros por nombre / usuario / fechas, vistas móvil y escritorio |
 | **Publicación** | Crear producto (nombre, descripción opcional, 1–4 fotos); editar y borrar los propios |
 | **Préstamo** | Reservar (o cancelar reserva); el propietario marca «en préstamo»; estado visible en el catálogo |
@@ -208,7 +212,7 @@ Correspondencia con [DOC-TFM.pdf](DOC-TFM.pdf):
 | Requisito | Dónde está |
 |-----------|------------|
 | 1. Documentación (descripción, stack, instalación, estructura, funcionalidades) | Este `README.md` |
-| 2. Código | Repositorio GitHub (opción preferida del enunciado) |
+| 2. Código | Repositorio GitHub (opción preferida del enunciado): `MASTER-AI-XRB/XARXANGLESOLA`; snapshot académico en `MASTER-AI-XRB/TFM` |
 | 3. Despliegue | https://xarxanglesola.vercel.app — también documentado aquí |
 | 4. Slides | `docs/presentacio.html` dentro del directorio del código |
 

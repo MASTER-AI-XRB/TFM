@@ -52,10 +52,9 @@ sequenceDiagram
 
   U->>UI: Introduce nickname + contraseña
   UI->>API: POST /api/auth/login
-  API->>DB: Verifica usuario
+  API->>DB: Verifica usuario (bcrypt)
   DB-->>API: Usuario válido
-  API-->>UI: userId + nickname
-  UI->>UI: Guarda en localStorage
+  API-->>UI: Cookie HMAC HttpOnly (SameSite=lax)
   UI-->>U: Navega a /app
 ```
 
@@ -104,10 +103,13 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant UI as Frontend
+  participant API as /api/auth/socket-token
   participant WS as Socket.IO server
   participant DB as PostgreSQL
 
-  UI->>WS: connect (userId, nickname)
+  UI->>API: POST /api/auth/socket-token
+  API-->>UI: token de corta duración
+  UI->>WS: connect (auth token)
   WS->>DB: Carga últimos mensajes
   WS-->>UI: load-messages
   UI->>WS: general-message
@@ -137,7 +139,8 @@ sequenceDiagram
 ```
 
 ## Notas rápidas
-- El frontend y las API conviven en Next.js.
-- Socket.IO corre en `server.js` y comparte BD con la API.
-- Las notificaciones push del navegador se gestionan en el cliente.
+- El frontend y las API conviven en Next.js 15.5 (React 19); gestor **pnpm**.
+- La sesión va en cookie HMAC HttpOnly; el chat pide token con **POST** `/api/auth/socket-token`.
+- Socket.IO corre en `server.js` (local) o `socket-server.js` (Railway) y comparte BD con la API.
+- Las notificaciones push del navegador se gestionan en el cliente (VAPID).
 - Las preferencias se aplican antes de emitir notificaciones vía `/notify`.

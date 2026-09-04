@@ -297,7 +297,7 @@
         <p class="lede" style="margin-top:1rem">Una red vecinal para prestar lo que ya tenemos: catálogo, reservas y chat en tiempo real. Aplicación real, desplegada y en uso.</p>
         <div class="meta">
           <span class="chip">Web app</span>
-          <span class="chip">Next.js · PostgreSQL · Socket.IO</span>
+          <span class="chip">Next.js 15 · React 19 · PostgreSQL · Socket.IO</span>
           <span class="chip">Vercel + Railway</span>
         </div>
       </div>
@@ -357,7 +357,7 @@
         <table>
           <thead><tr><th>Pieza</th><th>Dónde corre</th><th>Rol</th></tr></thead>
           <tbody>
-            <tr><td>Next.js (App Router)</td><td>Vercel</td><td>UI + API routes</td></tr>
+            <tr><td>Next.js 15.5 (App Router) + React 19</td><td>Vercel</td><td>UI + API routes</td></tr>
             <tr><td>PostgreSQL + Prisma</td><td>Neon (o equivalente)</td><td>Usuarios, productos, mensajes</td></tr>
             <tr><td>Socket.IO</td><td>Railway</td><td>Chat y broadcast de estado</td></tr>
             <tr><td>Vercel Blob</td><td>Vercel</td><td>Imágenes de producto</td></tr>
@@ -374,19 +374,19 @@
         <div class="grid grid-2">
           <article class="card">
             <h3>Frontend</h3>
-            <p>React 18, TypeScript, Tailwind, next-intl (ca / es / en), PWA, tema claro/oscuro, onboarding.</p>
+            <p>React 19, Next.js 15.5, TypeScript, Tailwind, next-intl (ca / es / en), PWA, tema claro/oscuro, onboarding.</p>
           </article>
           <article class="card">
             <h3>Backend</h3>
-            <p>Route Handlers, Prisma, sesiones HMAC + NextAuth (Google), validación de entrada, headers de seguridad.</p>
+            <p>Route Handlers (POST para mutaciones), Prisma, sesiones HMAC + NextAuth (Google), validación de entrada, headers de seguridad.</p>
           </article>
           <article class="card">
             <h3>Calidad</h3>
-            <p>Vitest (unitario) y Playwright (e2e) sobre auth, productos, favoritos, reservas y reset de contraseña.</p>
+            <p>Vitest y Playwright; React Doctor sobre el código React/Next; <code>pnpm audit</code> para CVE de dependencias.</p>
           </article>
           <article class="card">
             <h3>Ops</h3>
-            <p>Vercel + Railway, variables de entorno documentadas, Blob para archivos, PostgreSQL en producción.</p>
+            <p>pnpm, Vercel + Railway, variables de entorno documentadas, Blob para archivos, PostgreSQL en producción.</p>
           </article>
         </div>
       </div>
@@ -412,7 +412,7 @@
         <div class="grid grid-2">
           <article class="card">
             <h3>Auth y API</h3>
-            <p>Cookies de sesión firmadas, OAuth Google, contraseñas con bcrypt, validación de uploads, CSP y HSTS en producción.</p>
+            <p>Cookies de sesión firmadas (SameSite=lax), OAuth Google, contraseñas con bcrypt, token de socket por POST, CSP y HSTS en producción.</p>
           </article>
           <article class="card">
             <h3>RGPD</h3>
@@ -429,7 +429,7 @@
         <p class="lede">No es un prototipo cerrado en el portátil: la app está publicada y el código versionado.</p>
         <a class="big-link" href="https://xarxanglesola.vercel.app">xarxanglesola.vercel.app</a>
         <p class="meta">
-          <span>Código: github.com/MASTER-AI-XRB/XARXANGLESOLA</span>
+          <span>Código: github.com/MASTER-AI-XRB/XARXANGLESOLA · snapshot TFM: MASTER-AI-XRB/TFM</span>
         </p>
       </div>
     </section>

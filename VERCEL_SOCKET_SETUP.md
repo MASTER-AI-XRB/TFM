@@ -251,7 +251,7 @@ Crea `socket-server-package.json`:
 
 3. **Configura el servicio**:
    - **Root Directory**: Déjalo vacío (o crea una carpeta `socket-server`)
-   - **Build Command**: `npm install && npx prisma generate`
+   - **Build Command**: `pnpm install && pnpm exec prisma generate`
    - **Start Command**: `node socket-server.js`
    - **Port**: Railway lo asignará automáticamente (usa `process.env.PORT`)
 
@@ -288,7 +288,7 @@ Render también ofrece un plan gratuito con soporte para WebSockets.
 2. **Crea un Web Service**:
    - Conecta tu repositorio GitHub
    - **Environment**: Node
-   - **Build Command**: `npm install && npx prisma generate`
+   - **Build Command**: `pnpm install && pnpm exec prisma generate`
    - **Start Command**: `node socket-server.js`
 
 3. **Variables de entorno** (igual que Railway)
@@ -336,4 +336,4 @@ Necesitamos actualizar `app/app/chat/page.tsx` para permitir Socket.IO en produc
 ### Errores de base de datos
 - Asegúrate de que el servidor Socket.IO tenga acceso a la base de datos
 - Verifica que `DATABASE_URL` esté bien configurada
-- Comprueba que Prisma Client esté generado (`npx prisma generate`)
+- Comprueba que Prisma Client esté generado (`pnpm exec prisma generate`)
