@@ -172,6 +172,7 @@ NEXT_PUBLIC_ALLOWED_ORIGINS=https://tu-app.vercel.app,https://www.tu-app.vercel.
 - **Puerto**: Railway lo asigna; no hace falta fijarlo a mano
 - **Logs**: en tiempo real en Railway Dashboard
 - **Redeploy**: cada push al repositorio hace un redeploy automático
+- **Plan gratuito**: obliga a **Serverless** (el socket se duerme). La app lo despierta al abrir el chat (puede tardar ~1 min la primera vez). Para dejarlo siempre encendido hace falta un plan de pago.
 
 ## Actualizar el despliegue
 

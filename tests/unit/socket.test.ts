@@ -39,3 +39,20 @@ describe('getSocketUrl', () => {
     expect(getSocketUrl()).toBe('http://localhost:3001')
   })
 })
+
+describe('wakeSocketServer', () => {
+  it('builds /health from the socket URL', async () => {
+    const { getSocketHealthUrl } = await import('@/lib/socket')
+    expect(getSocketHealthUrl('https://xarxanglesola-production.up.railway.app')).toBe(
+      'https://xarxanglesola-production.up.railway.app/health'
+    )
+    expect(getSocketHealthUrl('https://example.com/')).toBe('https://example.com/health')
+  })
+
+  it('does not wake localhost (dev)', async () => {
+    const { shouldWakeSocketServer } = await import('@/lib/socket')
+    expect(shouldWakeSocketServer('http://localhost:3001')).toBe(false)
+    expect(shouldWakeSocketServer('http://127.0.0.1:3001')).toBe(false)
+    expect(shouldWakeSocketServer('https://xarxanglesola-production.up.railway.app')).toBe(true)
+  })
+})

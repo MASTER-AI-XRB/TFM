@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
-import { getSocketUrl } from '@/lib/socket'
+import { getSocketUrl, wakeSocketServer } from '@/lib/socket'
 import { getStoredNickname, getStoredSocketToken, PUSH_PERMISSION_GRANTED_EVENT } from '@/lib/client-session'
 import { useNotifications } from '@/lib/notifications'
 import { useI18n } from '@/lib/i18n'
@@ -67,14 +67,8 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
     const socketUrl = getSocketUrl()
     if (!nickname || !socketToken || !socketUrl) return
 
-    const s = io(socketUrl, {
-      auth: { token: socketToken },
-      transports: ['polling', 'websocket'],
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-    })
+    let cancelled = false
+    let s: Socket | null = null
 
     const onConnect = () => {
       logInfo('AppSocket connectat')
@@ -101,7 +95,7 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
       const r = routerRef.current
       const sh = showInfoRef.current
       const addA = addAlertRef.current
-      const locale = localeRef.current ?? getLocaleNow()
+      const loc = localeRef.current ?? getLocaleNow()
       const rawParams = (data.params ?? {}) as Record<string, string | number>
       const params: Record<string, string | number> = {
         ...rawParams,
@@ -112,24 +106,28 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
       let message = ''
       let actionLabel = ''
       if (data.titleKey) {
-        const translated = formatTranslation(locale, data.titleKey)
-        title = (translated && translated.trim() && translated !== data.titleKey) ? translated : (data.title ?? '')
+        const translated = formatTranslation(loc, data.titleKey)
+        title = translated && translated.trim() && translated !== data.titleKey ? translated : (data.title ?? '')
       } else {
-        title = (typeof data.title === 'string' && data.title.trim()) ? data.title : ''
+        title = typeof data.title === 'string' && data.title.trim() ? data.title : ''
       }
       if (data.messageKey) {
-        const translated = formatTranslation(locale, data.messageKey, params)
-        message = (translated && translated.trim() && translated !== data.messageKey) ? translated : (data.message ?? '')
+        const translated = formatTranslation(loc, data.messageKey, params)
+        message =
+          translated && translated.trim() && translated !== data.messageKey ? translated : (data.message ?? '')
       } else {
-        message = (typeof data.message === 'string' && data.message.trim()) ? data.message : ''
+        message = typeof data.message === 'string' && data.message.trim() ? data.message : ''
       }
       if (data.action?.labelKey) {
-        const translated = formatTranslation(locale, data.action.labelKey)
-        actionLabel = (translated && translated.trim() && translated !== data.action.labelKey) ? translated : (data.action?.label ?? '')
+        const translated = formatTranslation(loc, data.action.labelKey)
+        actionLabel =
+          translated && translated.trim() && translated !== data.action.labelKey
+            ? translated
+            : (data.action?.label ?? '')
       } else {
-        actionLabel = (typeof data.action?.label === 'string' && data.action.label.trim()) ? data.action.label : ''
+        actionLabel = typeof data.action?.label === 'string' && data.action.label.trim() ? data.action.label : ''
       }
-      if (!title) title = formatTranslation(locale, 'common.appName')
+      if (!title) title = formatTranslation(loc, 'common.appName')
       if (!message) message = ' '
       sh(title, message, {
         type: (data.type as 'info' | 'success' | 'warning' | 'error') || 'info',
@@ -154,27 +152,52 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
         action: data.action?.url ? { url: data.action.url, label: actionLabel } : undefined,
       })
     }
-    const onProductState = (data: { productId: string; reserved?: boolean; reservedBy?: { nickname: string } | null; prestec?: boolean }) => {
+    const onProductState = (data: {
+      productId: string
+      reserved?: boolean
+      reservedBy?: { nickname: string } | null
+      prestec?: boolean
+    }) => {
       if (typeof window !== 'undefined' && data?.productId) {
-        logInfo('product-state rebut:', { productId: data.productId, reserved: data.reserved, reservedBy: data.reservedBy })
+        logInfo('product-state rebut:', {
+          productId: data.productId,
+          reserved: data.reserved,
+          reservedBy: data.reservedBy,
+        })
         window.dispatchEvent(new CustomEvent('product-state', { detail: data }))
       }
     }
 
-    s.on('connect', onConnect)
-    s.on('disconnect', onDisconnect)
-    s.on('connect_error', onConnectError)
-    s.on('app-notification', onAppNotification)
-    s.on('product-state', onProductState)
+    void (async () => {
+      await wakeSocketServer(socketUrl)
+      if (cancelled) return
+      s = io(socketUrl, {
+        auth: { token: socketToken },
+        transports: ['polling', 'websocket'],
+        timeout: 60000,
+        reconnection: true,
+        reconnectionAttempts: 30,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 15000,
+      })
+      s.on('connect', onConnect)
+      s.on('disconnect', onDisconnect)
+      s.on('connect_error', onConnectError)
+      s.on('app-notification', onAppNotification)
+      s.on('product-state', onProductState)
+      setSocket(s)
+    })()
 
-    setSocket(s)
     return () => {
-      s.off('connect', onConnect)
-      s.off('disconnect', onDisconnect)
-      s.off('connect_error', onConnectError)
-      s.off('app-notification', onAppNotification)
-      s.off('product-state', onProductState)
-      s.close()
+      cancelled = true
+      if (s) {
+        s.off('connect', onConnect)
+        s.off('disconnect', onDisconnect)
+        s.off('connect_error', onConnectError)
+        s.off('app-notification', onAppNotification)
+        s.off('product-state', onProductState)
+        s.close()
+      }
       setSocket(null)
       setConnected(false)
     }
@@ -208,9 +231,5 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
 
   const value = useMemo(() => ({ socket, connected }), [socket, connected])
 
-  return (
-    <AppSocketContext.Provider value={value}>
-      {children}
-    </AppSocketContext.Provider>
-  )
+  return <AppSocketContext.Provider value={value}>{children}</AppSocketContext.Provider>
 }

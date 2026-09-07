@@ -503,7 +503,7 @@ io.on('connection', (socket) => {
     if (req.url && req.url.startsWith('/socket.io')) return
 
     res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-notify-token')
 
     if (req.method === 'OPTIONS') {
@@ -513,6 +513,13 @@ io.on('connection', (socket) => {
     }
 
     const urlPath = req.url && req.url.split('?')[0]
+    const isHealthPath = urlPath === '/health' || urlPath === '/'
+    if (req.method === 'GET' && isHealthPath) {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ ok: true, service: 'socket' }))
+      return
+    }
+
     const isNotifyPath = urlPath === '/notify'
     const isBroadcastPath = urlPath === '/broadcast-product-state'
     if (req.method !== 'POST' || (!isNotifyPath && !isBroadcastPath)) {

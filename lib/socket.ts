@@ -65,3 +65,29 @@ export function getSocketUrl(): string | null {
 
   return socketUrl
 }
+
+export function getSocketHealthUrl(socketUrl: string): string {
+  return `${socketUrl.replace(/\/$/, '')}/health`
+}
+
+export function shouldWakeSocketServer(socketUrl: string): boolean {
+  return !/localhost|127\.0\.0\.1/i.test(socketUrl)
+}
+
+/** Desperta Railway (pla gratuït / Serverless) abans del handshake Socket.IO. */
+export async function wakeSocketServer(socketUrl: string, timeoutMs = 90_000): Promise<void> {
+  if (!shouldWakeSocketServer(socketUrl)) return
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    await fetch(getSocketHealthUrl(socketUrl), {
+      method: 'GET',
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+  } catch {
+    // El contenidor pot trigar; Socket.IO reintentarà.
+  } finally {
+    clearTimeout(timer)
+  }
+}
