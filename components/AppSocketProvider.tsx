@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { useRouter } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
-import { getSocketUrl, wakeSocketServer } from '@/lib/socket'
+import { getSocketUrl, wakeSocketServer, getAppSocketClientOptions } from '@/lib/socket'
 import { getStoredNickname, getStoredSocketToken, hasSocketCredentials, PUSH_PERMISSION_GRANTED_EVENT, SESSION_CHANGE_EVENT } from '@/lib/client-session'
 import { useNotifications } from '@/lib/notifications'
 import { useI18n } from '@/lib/i18n'
@@ -58,7 +58,6 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
   }, [])
 
   useEffect(() => {
-    let cancelled = false
     let s: Socket | null = null
 
     const onConnect = () => {
@@ -164,25 +163,15 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
       const socketToken = getStoredSocketToken()
       const socketUrl = getSocketUrl()
       if (hasSocketCredentials(nickname, socketToken) && socketUrl) {
-        s = io(socketUrl, {
-          auth: { token: socketToken },
-          transports: ['polling', 'websocket'],
-          timeout: 60000,
-          reconnection: true,
-          reconnectionAttempts: 30,
-          reconnectionDelay: 2000,
-          reconnectionDelayMax: 15000,
-          autoConnect: false,
-        })
+        s = io(socketUrl, getAppSocketClientOptions(socketToken))
         s.on('connect', onConnect)
         s.on('disconnect', onDisconnect)
         s.on('connect_error', onConnectError)
         s.on('app-notification', onAppNotification)
         s.on('product-state', onProductState)
         setSocket(s)
-        void wakeSocketServer(socketUrl).then(() => {
-          if (!cancelled) s?.connect()
-        })
+        // Paral·lel al handshake: no bloquegis connect() esperant /health (si Railway dorm, /socket.io/ el desperta).
+        void wakeSocketServer(socketUrl)
       }
     } else {
       setSocket((prev) => {
@@ -196,7 +185,6 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
     }
 
     return () => {
-      cancelled = true
       if (s) {
         s.off('connect', onConnect)
         s.off('disconnect', onDisconnect)

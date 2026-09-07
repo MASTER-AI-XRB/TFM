@@ -56,3 +56,15 @@ describe('wakeSocketServer', () => {
     expect(shouldWakeSocketServer('https://xarxanglesola-production.up.railway.app')).toBe(true)
   })
 })
+
+describe('getAppSocketClientOptions', () => {
+  it('connects immediately so Engine.IO can wake Railway, and does not reuse a closed manager', async () => {
+    const { getAppSocketClientOptions } = await import('@/lib/socket')
+    const options = getAppSocketClientOptions('tok')
+    expect(options.auth).toEqual({ token: 'tok' })
+    expect(options.autoConnect).not.toBe(false)
+    expect(options.forceNew).toBe(true)
+    expect(options.reconnection).toBe(true)
+    expect(options.reconnectionAttempts).toBeGreaterThanOrEqual(10)
+  })
+})

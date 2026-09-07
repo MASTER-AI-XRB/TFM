@@ -66,6 +66,20 @@ export function getSocketUrl(): string | null {
   return socketUrl
 }
 
+/** Opcions del client Socket.IO de l’app: handshake immediat (desperta Railway) i manager nou. */
+export function getAppSocketClientOptions(socketToken: string) {
+  return {
+    auth: { token: socketToken },
+    transports: ['polling', 'websocket'] as const,
+    timeout: 60_000,
+    reconnection: true,
+    reconnectionAttempts: 30,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 15_000,
+    forceNew: true,
+  }
+}
+
 export function getSocketHealthUrl(socketUrl: string): string {
   return `${socketUrl.replace(/\/$/, '')}/health`
 }
