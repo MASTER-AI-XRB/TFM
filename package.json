@@ -68,6 +68,7 @@
   },
   "description": "Plataforma vecinal de préstamo e intercambio de productos, con catálogo, reservas y chat en tiempo real. Trabajo de Fin de Máster.",
   "main": "next.config.js",
+  "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=18.18.0",
     "pnpm": ">=9.0.0"

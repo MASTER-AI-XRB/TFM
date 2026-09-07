@@ -23,7 +23,7 @@ Esta guía explica paso a paso cómo desplegar el servidor Socket.IO en Railway.
 2. En la configuración del servicio:
    - **Root Directory**: déjalo vacío (o `/` si lo pide)
    - **Build Command**: déjalo vacío (Railway lo detectará)
-   - **Start Command**: `node socket-server.js`
+   - **Start Command**: `node socket-server.js` (no `next build`: la web va a Vercel)
 
 ### Opción B: Usando railway.json
 
@@ -73,13 +73,15 @@ Si hay problemas, configura manualmente:
 
 ### Build Command:
 ```bash
-pnpm install && pnpm exec prisma generate
+corepack enable && corepack prepare pnpm@9.15.9 --activate && pnpm install --frozen-lockfile --config.minimumReleaseAge=0 && pnpm exec prisma generate
 ```
 
 ### Start Command:
 ```bash
 node socket-server.js
 ```
+
+No uses `pnpm run build` / `next build` a Railway: això és de Vercel. Aquí només cal Prisma + `socket-server.js`.
 
 ## Paso 5: Obtener la URL del servidor
 

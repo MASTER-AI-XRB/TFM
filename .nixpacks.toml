@@ -1,11 +1,18 @@
+providers = ["node"]
+
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm install", "npx prisma generate"]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@9.15.9 --activate",
+  "pnpm install --frozen-lockfile --config.minimumReleaseAge=0",
+  "pnpm exec prisma generate",
+]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["echo 'Railway: Socket.IO only, skip Next.js build'"]
 
 [start]
-cmd = "node server.js"
+cmd = "node socket-server.js"
