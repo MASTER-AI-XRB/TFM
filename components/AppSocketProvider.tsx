@@ -58,22 +58,6 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
   }, [])
 
   useEffect(() => {
-    if (ready === false) {
-      setSocket((prev) => {
-        if (prev) {
-          prev.close()
-          return null
-        }
-        return prev
-      })
-      setConnected(false)
-      return
-    }
-    const nickname = getStoredNickname()
-    const socketToken = getStoredSocketToken()
-    const socketUrl = getSocketUrl()
-    if (!hasSocketCredentials(nickname, socketToken) || !socketUrl) return
-
     let cancelled = false
     let s: Socket | null = null
 
@@ -175,25 +159,41 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
       }
     }
 
-    void (async () => {
-      await wakeSocketServer(socketUrl)
-      if (cancelled) return
-      s = io(socketUrl, {
-        auth: { token: socketToken },
-        transports: ['polling', 'websocket'],
-        timeout: 60000,
-        reconnection: true,
-        reconnectionAttempts: 30,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 15000,
+    if (ready !== false) {
+      const nickname = getStoredNickname()
+      const socketToken = getStoredSocketToken()
+      const socketUrl = getSocketUrl()
+      if (hasSocketCredentials(nickname, socketToken) && socketUrl) {
+        s = io(socketUrl, {
+          auth: { token: socketToken },
+          transports: ['polling', 'websocket'],
+          timeout: 60000,
+          reconnection: true,
+          reconnectionAttempts: 30,
+          reconnectionDelay: 2000,
+          reconnectionDelayMax: 15000,
+          autoConnect: false,
+        })
+        s.on('connect', onConnect)
+        s.on('disconnect', onDisconnect)
+        s.on('connect_error', onConnectError)
+        s.on('app-notification', onAppNotification)
+        s.on('product-state', onProductState)
+        setSocket(s)
+        void wakeSocketServer(socketUrl).then(() => {
+          if (!cancelled) s?.connect()
+        })
+      }
+    } else {
+      setSocket((prev) => {
+        if (prev) {
+          prev.close()
+          return null
+        }
+        return prev
       })
-      s.on('connect', onConnect)
-      s.on('disconnect', onDisconnect)
-      s.on('connect_error', onConnectError)
-      s.on('app-notification', onAppNotification)
-      s.on('product-state', onProductState)
-      setSocket(s)
-    })()
+      setConnected(false)
+    }
 
     return () => {
       cancelled = true

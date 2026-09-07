@@ -20,7 +20,7 @@ export const getStoredSocketToken = () => memorySocketToken
 export function hasSocketCredentials(
   nickname: string | null,
   socketToken: string | null
-): boolean {
+): socketToken is string {
   return Boolean(nickname && socketToken)
 }
 
