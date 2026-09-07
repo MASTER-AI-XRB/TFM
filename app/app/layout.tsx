@@ -70,7 +70,7 @@ export default function AppLayout({
       if (!initialSyncDone.current) {
         initialSyncDone.current = true
         setNickname(savedNickname)
-        setSocketReady(true)
+        // No obrir el socket fins que arribi el token (es perd al recarregar).
       }
       // Renovar cookie httpOnly si cal (middleware ja ha validat l’accés)
       if (!firstFetchDone.current) {

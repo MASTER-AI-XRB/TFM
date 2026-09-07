@@ -16,6 +16,14 @@ export const getStoredNickname = () =>
 
 export const getStoredSocketToken = () => memorySocketToken
 
+/** El token viu només en memòria: després d’un refresh cal esperar el POST socket-token. */
+export function hasSocketCredentials(
+  nickname: string | null,
+  socketToken: string | null
+): boolean {
+  return Boolean(nickname && socketToken)
+}
+
 export const setStoredSession = (nickname: string, socketToken?: string | null) => {
   if (!isBrowser) return
   window.localStorage.setItem('nickname', nickname)

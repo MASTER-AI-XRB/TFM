@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { io, type Socket } from 'socket.io-client'
 import { getSocketUrl, wakeSocketServer } from '@/lib/socket'
-import { getStoredNickname, getStoredSocketToken, PUSH_PERMISSION_GRANTED_EVENT } from '@/lib/client-session'
+import { getStoredNickname, getStoredSocketToken, hasSocketCredentials, PUSH_PERMISSION_GRANTED_EVENT, SESSION_CHANGE_EVENT } from '@/lib/client-session'
 import { useNotifications } from '@/lib/notifications'
 import { useI18n } from '@/lib/i18n'
 import { formatTranslation, getLocaleNow } from '@/lib/i18n-format'
@@ -50,6 +50,13 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
     localeRef.current = locale
   }, [router, showInfo, addAlert, locale])
 
+  const [sessionEpoch, setSessionEpoch] = useState(0)
+  useEffect(() => {
+    const bump = () => setSessionEpoch((n) => n + 1)
+    window.addEventListener(SESSION_CHANGE_EVENT, bump)
+    return () => window.removeEventListener(SESSION_CHANGE_EVENT, bump)
+  }, [])
+
   useEffect(() => {
     if (ready === false) {
       setSocket((prev) => {
@@ -65,7 +72,7 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
     const nickname = getStoredNickname()
     const socketToken = getStoredSocketToken()
     const socketUrl = getSocketUrl()
-    if (!nickname || !socketToken || !socketUrl) return
+    if (!hasSocketCredentials(nickname, socketToken) || !socketUrl) return
 
     let cancelled = false
     let s: Socket | null = null
@@ -201,7 +208,7 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
       setSocket(null)
       setConnected(false)
     }
-  }, [ready])
+  }, [ready, sessionEpoch])
 
   useEffect(() => {
     if (!ready) return
