@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import type { ManagerOptions, SocketOptions } from 'socket.io-client'
 import { getSocketUrl } from '@/lib/socket'
 
 describe('getSocketUrl', () => {
@@ -60,11 +61,12 @@ describe('wakeSocketServer', () => {
 describe('getAppSocketClientOptions', () => {
   it('connects immediately so Engine.IO can wake Railway, and does not reuse a closed manager', async () => {
     const { getAppSocketClientOptions } = await import('@/lib/socket')
-    const options = getAppSocketClientOptions('tok')
+    const options: Partial<ManagerOptions & SocketOptions> = getAppSocketClientOptions('tok')
     expect(options.auth).toEqual({ token: 'tok' })
     expect(options.autoConnect).not.toBe(false)
     expect(options.forceNew).toBe(true)
     expect(options.reconnection).toBe(true)
     expect(options.reconnectionAttempts).toBeGreaterThanOrEqual(10)
+    expect(options.transports).toEqual(['polling', 'websocket'])
   })
 })

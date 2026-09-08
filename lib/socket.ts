@@ -1,3 +1,9 @@
+import type { ManagerOptions, SocketOptions } from 'socket.io-client'
+
+type AppSocketClientOptions = Partial<ManagerOptions & SocketOptions>
+
+const APP_SOCKET_TRANSPORTS: Array<'polling' | 'websocket'> = ['polling', 'websocket']
+
 /**
  * URL del servidor Socket per crides des del servidor (API routes).
  * En dev retorna localhost:3001 perquè els clients connecten al socket local.
@@ -67,10 +73,10 @@ export function getSocketUrl(): string | null {
 }
 
 /** Opcions del client Socket.IO de l’app: handshake immediat (desperta Railway) i manager nou. */
-export function getAppSocketClientOptions(socketToken: string) {
+export function getAppSocketClientOptions(socketToken: string): AppSocketClientOptions {
   return {
     auth: { token: socketToken },
-    transports: ['polling', 'websocket'] as const,
+    transports: [...APP_SOCKET_TRANSPORTS],
     timeout: 60_000,
     reconnection: true,
     reconnectionAttempts: 30,
