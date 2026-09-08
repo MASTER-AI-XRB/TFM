@@ -91,12 +91,13 @@
   "favorites": {
     "title": "Preferits",
     "noFavorites": "Encara no tens cap producte als teus preferits.",
-    "addFirst": "Afegeix el teu primer preferit →"
+    "addFirst": "Afegeix el teu primer preferit",
+    "explore": "Explora productes"
   },
   "myProducts": {
     "title": "Els meus productes",
     "noProducts": "Encara no has publicat cap producte.",
-    "publishFirst": "Publica el teu primer producte →"
+    "publishFirst": "Publica el teu primer producte"
   },
   "newProduct": {
     "title": "Nou Producte",

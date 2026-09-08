@@ -91,12 +91,13 @@
   "favorites": {
     "title": "Favorites",
     "noFavorites": "You don't have any products in your favorites yet.",
-    "addFirst": "Add your first favorite →"
+    "addFirst": "Add your first favorite",
+    "explore": "Explore products"
   },
   "myProducts": {
     "title": "My Products",
     "noProducts": "You haven't published any products yet.",
-    "publishFirst": "Publish your first product →"
+    "publishFirst": "Publish your first product"
   },
   "newProduct": {
     "title": "New Product",

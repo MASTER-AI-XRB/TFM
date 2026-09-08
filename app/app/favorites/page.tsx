@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
@@ -14,6 +13,7 @@ import { RefreshSpinButton } from '@/components/products/RefreshSpinButton'
 import { ProductCardsView } from '@/components/products/ProductCardsView'
 import { ProductReserveControl } from '@/components/products/ProductReserveControl'
 import { ProductLoanBadge } from '@/components/products/ProductLoanBadge'
+import { AppPrimaryLink } from '@/components/AppNavLink'
 
 export default function FavoritesPage() {
   const [viewMode, setViewMode] = useStoredViewMode()
@@ -118,14 +118,11 @@ export default function FavoritesPage() {
       </div>
 
       {products.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 flex flex-col items-center">
           <p className="text-gray-500 dark:text-gray-400 text-lg">{t('favorites.noFavorites')}</p>
-          <Link
-            href="/app"
-            className="text-blue-600 hover:text-blue-700 mt-4 inline-block"
-          >
+          <AppPrimaryLink href="/app" className="mt-4">
             {t('favorites.explore')}
-          </Link>
+          </AppPrimaryLink>
         </div>
       ) : (
         <ProductCardsView

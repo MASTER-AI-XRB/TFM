@@ -1,10 +1,10 @@
 'use client'
 
-import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
 import type { ViewMode } from '@/lib/client-session'
 import { ViewModeToggle } from '@/components/products/ViewModeToggle'
 import { RefreshSpinButton } from '@/components/products/RefreshSpinButton'
+import { AppPrimaryLink } from '@/components/AppNavLink'
 
 type ProductCatalogHeaderProps = {
   viewMode: ViewMode
@@ -28,12 +28,9 @@ export function ProductCatalogHeader({
         <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
         <RefreshSpinButton onRefresh={onRefresh} />
       </div>
-      <Link
-        href="/app/products/new"
-        className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-center text-sm sm:text-base"
-      >
+      <AppPrimaryLink href="/app/products/new" className="w-full sm:w-auto">
         {t('products.newProduct')}
-      </Link>
+      </AppPrimaryLink>
     </div>
   )
 }

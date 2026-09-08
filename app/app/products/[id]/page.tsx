@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import TranslateButton from '@/components/TranslateButton'
@@ -11,6 +10,7 @@ import { ProductDetailActions } from '@/components/products/ProductDetailActions
 import { useStoredNickname } from '@/lib/use-stored-nickname'
 import { formatDateLongCa } from '@/lib/format-date'
 import { logError } from '@/lib/client-logger'
+import { AppBackLink } from '@/components/AppNavLink'
 
 interface Product {
   id: string
@@ -153,12 +153,9 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-      <Link
-        href="/app"
-        className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 mb-4 inline-block text-sm sm:text-base"
-      >
+      <AppBackLink href="/app" className="mb-4">
         {t('productDetail.backToProducts')}
-      </Link>
+      </AppBackLink>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900 overflow-hidden">
         <div className="flex flex-col md:flex-row">

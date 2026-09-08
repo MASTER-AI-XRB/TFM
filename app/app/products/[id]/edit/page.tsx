@@ -1,12 +1,12 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
+import { AppBackLink } from '@/components/AppNavLink'
 
 interface Product {
   id: string
@@ -196,9 +196,7 @@ function EditProductNotFound({ t }: { t: (key: string) => string }) {
   return (
     <div className="space-y-4">
       <p className="text-gray-700 dark:text-gray-300">{t('productDetail.notFound')}</p>
-      <Link href="/app" className="text-blue-600 dark:text-blue-400 hover:underline">
-        {t('productDetail.backToProducts')}
-      </Link>
+      <AppBackLink href="/app">{t('productDetail.backToProducts')}</AppBackLink>
     </div>
   )
 }

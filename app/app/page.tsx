@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useI18n } from '@/lib/i18n'
 import { useStoredViewMode } from '@/lib/use-stored-view-mode'
 import { useProductCatalog } from '@/lib/use-product-catalog'
@@ -11,6 +10,7 @@ import { ProductOwnerActions } from '@/components/products/ProductOwnerActions'
 import { ProductReserveControl } from '@/components/products/ProductReserveControl'
 import { ProductLoanBadge } from '@/components/products/ProductLoanBadge'
 import { CatalogFavoriteButton } from '@/components/products/CatalogFavoriteButton'
+import { AppPrimaryLink, AppSecondaryButton } from '@/components/AppNavLink'
 
 export default function ProductsPage() {
   const [viewMode, setViewMode] = useStoredViewMode()
@@ -60,24 +60,18 @@ export default function ProductsPage() {
       />
 
       {products.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 flex flex-col items-center">
           <p className="text-gray-500 dark:text-gray-400 text-lg">{t('products.noProductsPublished')}</p>
-          <Link
-            href="/app/products/new"
-            className="text-blue-600 hover:text-blue-700 mt-4 inline-block"
-          >
+          <AppPrimaryLink href="/app/products/new" className="mt-4">
             {t('products.beFirst')}
-          </Link>
+          </AppPrimaryLink>
         </div>
       ) : filteredProducts.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 flex flex-col items-center">
           <p className="text-gray-500 dark:text-gray-400 text-lg">{t('products.noResults')}</p>
-          <button
-            onClick={clearFilters}
-            className="text-blue-600 hover:text-blue-700 mt-4 inline-block"
-          >
+          <AppSecondaryButton className="mt-4" onClick={clearFilters}>
             {t('products.filters.clearFilters')}
-          </button>
+          </AppSecondaryButton>
         </div>
       ) : (
         <ProductCardsView
