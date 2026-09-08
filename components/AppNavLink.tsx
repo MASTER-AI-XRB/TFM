@@ -13,20 +13,6 @@ function cx(...parts: Array<string | undefined>) {
   return parts.filter(Boolean).join(' ')
 }
 
-function BackChevron() {
-  return (
-    <svg
-      className="w-4 h-4 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-    </svg>
-  )
-}
-
 type AppNavLinkProps = {
   href: string
   children: ReactNode
@@ -36,15 +22,6 @@ type AppNavLinkProps = {
 export function AppPrimaryLink({ href, children, className }: AppNavLinkProps) {
   return (
     <Link href={href} className={cx(PRIMARY_CLASS, className)}>
-      {children}
-    </Link>
-  )
-}
-
-export function AppBackLink({ href, children, className }: AppNavLinkProps) {
-  return (
-    <Link href={href} className={cx(SECONDARY_CLASS, className)}>
-      <BackChevron />
       {children}
     </Link>
   )

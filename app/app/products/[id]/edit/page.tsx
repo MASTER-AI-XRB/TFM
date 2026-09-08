@@ -6,7 +6,6 @@ import Image from 'next/image'
 import useSWR from 'swr'
 import { useI18n } from '@/lib/i18n'
 import { useStoredNickname } from '@/lib/use-stored-nickname'
-import { AppBackLink } from '@/components/AppNavLink'
 
 interface Product {
   id: string
@@ -194,10 +193,7 @@ function EditProductLoading({ t }: { t: (key: string) => string }) {
 
 function EditProductNotFound({ t }: { t: (key: string) => string }) {
   return (
-    <div className="space-y-4">
-      <p className="text-gray-700 dark:text-gray-300">{t('productDetail.notFound')}</p>
-      <AppBackLink href="/app">{t('productDetail.backToProducts')}</AppBackLink>
-    </div>
+    <p className="text-gray-700 dark:text-gray-300">{t('productDetail.notFound')}</p>
   )
 }
 

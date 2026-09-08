@@ -2,7 +2,6 @@
 
 import { useI18n } from '@/lib/i18n'
 import { LEGAL_LAST_UPDATED_LABEL } from '@/lib/format-date'
-import { AppBackLink } from '@/components/AppNavLink'
 
 export default function PrivacyPage() {
   const { t } = useI18n()
@@ -101,9 +100,6 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <div className="mt-8 pt-6 border-t dark:border-gray-700">
-          <AppBackLink href="/">{t('common.back')}</AppBackLink>
-        </div>
       </div>
     </div>
   )

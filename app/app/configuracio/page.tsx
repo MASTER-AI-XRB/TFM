@@ -8,7 +8,6 @@ import { useI18n } from '@/lib/i18n'
 import { useNotifications } from '@/lib/notifications'
 import { clearStoredSession } from '@/lib/client-session'
 import { APP_VERSION } from '@/lib/version'
-import { AppBackLink } from '@/components/AppNavLink'
 
 export default function ConfiguracioPage() {
   const [unlinking, setUnlinking] = useState(false)
@@ -122,9 +121,6 @@ export default function ConfiguracioPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <AppBackLink href="/app" className="mb-4">
-        {t('common.back')}
-      </AppBackLink>
       <h1 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
         {t('config.title')}
       </h1>

@@ -10,7 +10,6 @@ import { ProductDetailActions } from '@/components/products/ProductDetailActions
 import { useStoredNickname } from '@/lib/use-stored-nickname'
 import { formatDateLongCa } from '@/lib/format-date'
 import { logError } from '@/lib/client-logger'
-import { AppBackLink } from '@/components/AppNavLink'
 
 interface Product {
   id: string
@@ -153,10 +152,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-      <AppBackLink href="/app" className="mb-4">
-        {t('productDetail.backToProducts')}
-      </AppBackLink>
-
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900 overflow-hidden">
         <div className="flex flex-col md:flex-row">
           <ProductImageGallery images={product.images} productName={product.name} />
