@@ -29,7 +29,9 @@
     "nicknameMinLength": "El nickname debe tener al menos 3 caracteres",
     "connectionError": "Error de conexión. Vuelve a intentarlo.",
     "or": "o",
-    "continueWithGoogle": "Continuar con Google"
+    "continueWithGoogle": "Continuar con Google",
+    "oauthAccountNotLinked": "Este email ya tiene una cuenta con contraseña. Entra con nickname y contraseña, o vincula Google desde Configuración una vez dentro.",
+    "googleAccessDenied": "No se ha podido iniciar sesión con Google."
   },
   "info": {
     "title": "¿Cómo funciona la Red?",

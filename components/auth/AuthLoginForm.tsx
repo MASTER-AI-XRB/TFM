@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/lib/i18n'
 import LanguageSelector from '@/components/LanguageSelector'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -32,6 +33,16 @@ export default function AuthLoginForm({ onLoginSuccess, isTransitioning }: AuthL
   const [loginLoading, setLoginLoading] = useState(false)
   const loginBusyRef = useRef(false)
   const { t } = useI18n()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const oauthError = searchParams.get('error')
+    if (oauthError === 'OAuthAccountNotLinked') {
+      setError(t('auth.oauthAccountNotLinked'))
+    } else if (oauthError === 'AccessDenied') {
+      setError(t('auth.googleAccessDenied'))
+    }
+  }, [searchParams, t])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

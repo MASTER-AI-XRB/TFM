@@ -29,7 +29,9 @@
     "nicknameMinLength": "Nickname must be at least 3 characters",
     "connectionError": "Connection error. Please try again.",
     "or": "or",
-    "continueWithGoogle": "Continue with Google"
+    "continueWithGoogle": "Continue with Google",
+    "oauthAccountNotLinked": "This email already has a password account. Sign in with nickname and password, or link Google from Settings after logging in.",
+    "googleAccessDenied": "Could not sign in with Google."
   },
   "info": {
     "title": "How does the Network work?",

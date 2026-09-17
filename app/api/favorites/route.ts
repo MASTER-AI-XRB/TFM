@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { getAuthUserId } from '@/lib/auth'
 import { mapProduct } from '@/lib/product-map'
 import { validateUuid } from '@/lib/validation'
@@ -7,21 +7,8 @@ import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logWarn } from '@/lib/logger'
 import { getSocketServerUrl } from '@/lib/socket'
 
-// Funció helper per obtenir instància de Prisma
-function getPrisma() {
-  try {
-    return new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    })
-  } catch (error) {
-    logError('Error creant PrismaClient:', error)
-    throw error
-  }
-}
-
 // Obtenir tots els preferits de l'usuari
 export async function GET(request: NextRequest) {
-  const prisma = getPrisma()
   try {
     const userId = await getAuthUserId(request)
 
@@ -51,14 +38,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error carregant preferits:', error)
     return apiError('Error carregant preferits', 500)
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
 // Afegir producte als preferits
 export async function POST(request: NextRequest) {
-  const prisma = getPrisma()
   try {
     const { productId } = await request.json()
     const authUserId = await getAuthUserId(request)
@@ -171,14 +155,11 @@ export async function POST(request: NextRequest) {
     return apiError('Error afegint preferit', 500, {
       details: error instanceof Error ? error.message : 'Unknown error',
     })
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
 // Eliminar producte dels preferits
 export async function DELETE(request: NextRequest) {
-  const prisma = getPrisma()
   try {
     const { productId } = await request.json()
     const authUserId = await getAuthUserId(request)
@@ -207,8 +188,6 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     logError('Error eliminant preferit:', error)
     return apiError('Error eliminant preferit', 500)
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

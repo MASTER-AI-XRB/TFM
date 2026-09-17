@@ -18,6 +18,7 @@ import { useI18n } from '@/lib/i18n'
 import { formatTranslation, getLocaleNow } from '@/lib/i18n-format'
 import { logInfo, logWarn } from '@/lib/client-logger'
 import { registerPushSubscription } from '@/lib/push-subscription'
+import { sameOriginPath } from '@/lib/safe-navigation'
 
 type AppSocketContextValue = {
   socket: Socket | null
@@ -126,7 +127,8 @@ export function AppSocketProvider({ children, ready }: { children: ReactNode; re
         action: data.action?.url
           ? {
               label: actionLabel,
-              onClick: () => r.push(data.action!.url!),
+              onClick: () =>
+                r.push(sameOriginPath(data.action!.url!, window.location.origin)),
             }
           : undefined,
       })

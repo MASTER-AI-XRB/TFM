@@ -122,11 +122,6 @@ export async function POST(request: NextRequest) {
             : String(error)
           : undefined,
     })
-  } finally {
-    // Desconnectar Prisma després de cada operació a Vercel
-    await prisma.$disconnect().catch(() => {
-      // Ignorar errors de desconnexió
-    })
   }
 }
 

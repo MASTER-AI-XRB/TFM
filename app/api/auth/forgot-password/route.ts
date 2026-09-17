@@ -1,11 +1,9 @@
 import { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logInfo } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 // Configuració del transporter d'email (ajusta segons el teu proveïdor)
 const getEmailTransporter = () => {

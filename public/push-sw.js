@@ -1,6 +1,20 @@
 /* eslint-disable no-restricted-globals */
 'use strict'
 
+function toSameOriginUrl(url) {
+  const origin = self.location.origin
+  const fallback = origin + '/app'
+  if (!url || typeof url !== 'string') return fallback
+  if (url.startsWith('/') && !url.startsWith('//')) return origin + url
+  try {
+    const parsed = new URL(url, origin)
+    if (parsed.origin !== origin) return fallback
+    return parsed.href
+  } catch {
+    return fallback
+  }
+}
+
 self.addEventListener('push', (event) => {
   if (!event.data) return
   let payload
@@ -30,8 +44,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url || '/app'
-  const fullUrl = url.startsWith('http') ? url : self.location.origin + (url.startsWith('/') ? url : '/' + url)
+  const fullUrl = toSameOriginUrl(event.notification.data?.url || '/app')
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

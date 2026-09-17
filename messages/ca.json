@@ -29,7 +29,9 @@
     "nicknameMinLength": "El nickname ha de tenir almenys 3 caràcters",
     "connectionError": "Error de connexió. Torna-ho a intentar.",
     "or": "o",
-    "continueWithGoogle": "Continua amb Google"
+    "continueWithGoogle": "Continua amb Google",
+    "oauthAccountNotLinked": "Aquest email ja té un compte amb contrasenya. Entra amb nickname i contrasenya, o enllaça Google des de Configuració un cop dins.",
+    "googleAccessDenied": "No s'ha pogut iniciar sessió amb Google."
   },
   "info": {
     "title": "Com funciona la Xarxa?",

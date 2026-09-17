@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { setStoredSession } from '@/lib/client-session'
 import { useLogoAmbientAnimation } from '@/lib/useLogoAmbientAnimation'
@@ -114,7 +114,9 @@ export default function Home() {
           isTransitioning ? 'opacity-0' : 'opacity-100'
         }`}
       >
-        <AuthLoginForm onLoginSuccess={handleLoginSuccess} isTransitioning={isTransitioning} />
+        <Suspense fallback={null}>
+          <AuthLoginForm onLoginSuccess={handleLoginSuccess} isTransitioning={isTransitioning} />
+        </Suspense>
       </div>
     </div>
   )

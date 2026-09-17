@@ -8,10 +8,22 @@ const { Server } = require('socket.io')
 const { PrismaClient } = require('@prisma/client')
 const webPush = require('web-push')
 const crypto = require('crypto')
-const { isNotifyAuthorized, resolveHandshakePrincipal } = require('./lib/socket-security')
+const { isNotifyAuthorized, resolveHandshakePrincipal, resolvePushActionUrl } = require('./lib/socket-security')
+const { withPrismaConnectionLimit } = require('./lib/prisma-url')
 
 const port = process.env.PORT || 3001
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+  datasources: process.env.DATABASE_URL
+    ? {
+        db: {
+          url: withPrismaConnectionLimit(
+            process.env.DATABASE_URL,
+            Number(process.env.PRISMA_CONNECTION_LIMIT || 5)
+          ),
+        },
+      }
+    : undefined,
+})
 const dev = process.env.NODE_ENV !== 'production'
 
 const getSecret = () => {
@@ -611,12 +623,7 @@ io.on('connection', (socket) => {
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1)
         if (!baseUrl && dev) baseUrl = 'http://localhost:3000'
         const rawUrl = action?.url || '/app'
-        const pushUrl =
-          rawUrl.startsWith('http')
-            ? rawUrl
-            : baseUrl
-              ? baseUrl + (rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl)
-              : rawUrl
+        const pushUrl = resolvePushActionUrl(rawUrl, baseUrl)
         const pushPayload = JSON.stringify({
           title: title || 'Xarxa Anglesola',
           body: message || '',

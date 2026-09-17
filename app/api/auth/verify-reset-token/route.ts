@@ -1,12 +1,10 @@
 import { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { apiOk } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
 
 // Forçar que aquesta ruta sigui dinàmica (no es pot pre-renderitzar)
 export const dynamic = 'force-dynamic'
-
-const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
   try {

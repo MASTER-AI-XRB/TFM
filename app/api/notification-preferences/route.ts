@@ -1,17 +1,11 @@
 import { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { getAuthUserId } from '@/lib/auth'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
 import { mapTruthy } from '@/lib/map-truthy'
 
 export const dynamic = 'force-dynamic'
-
-function getPrisma() {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  })
-}
 
 const parseList = (value?: string | null): string[] =>
   value ? mapTruthy(value.split(','), (item) => item.trim()) : []
@@ -22,7 +16,6 @@ const normalizeList = (items: string[], maxItems: number, maxLength: number) => 
 }
 
 export async function GET(request: NextRequest) {
-  const prisma = getPrisma()
   try {
     const authUserId = await getAuthUserId(request)
     if (!authUserId) {
@@ -53,13 +46,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error carregant preferències de notificació:', error)
     return apiError('Error carregant preferències de notificació', 500)
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const prisma = getPrisma()
   try {
     const { receiveAll, allowedNicknames, allowedProductKeywords, enabledTypes } =
       await request.json()
@@ -107,7 +97,5 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     logError('Error guardant preferències de notificació:', error)
     return apiError('Error guardant preferències de notificació', 500)
-  } finally {
-    await prisma.$disconnect()
   }
 }

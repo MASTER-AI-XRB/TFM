@@ -6,6 +6,7 @@ import {
   sessionCookieName,
   verifySessionTokenEdge,
 } from '@/lib/auth-edge'
+import { getClientIp } from '@/lib/client-ip'
 
 // Rate limiting simple (per producció, considera usar Redis)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
@@ -37,11 +38,7 @@ const RATE_LIMITS = [
 ]
 
 function getRateLimitKey(request: NextRequest): string {
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  return ip
+  return getClientIp(request.headers)
 }
 
 function checkRateLimit(key: string, windowMs: number, maxRequests: number): boolean {

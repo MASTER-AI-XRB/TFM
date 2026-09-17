@@ -9,3 +9,8 @@ export function resolveHandshakePrincipal(input: {
   query?: Record<string, unknown>
   nodeEnv?: string
 }): { userId: string | null; nickname: string | null }
+
+export function resolvePushActionUrl(
+  rawUrl?: string | null,
+  appOrigin?: string | null
+): string

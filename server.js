@@ -5,7 +5,8 @@ const { Server } = require('socket.io')
 const { PrismaClient } = require('@prisma/client')
 const crypto = require('crypto')
 const webPush = require('web-push')
-const { isNotifyAuthorized, resolveHandshakePrincipal } = require('./lib/socket-security')
+const { isNotifyAuthorized, resolveHandshakePrincipal, resolvePushActionUrl } = require('./lib/socket-security')
+const { withPrismaConnectionLimit } = require('./lib/prisma-url')
 
 const dev = process.env.NODE_ENV !== 'production'
 const isDev = dev
@@ -48,7 +49,18 @@ function isDockerWslIP(ip) {
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+  datasources: process.env.DATABASE_URL
+    ? {
+        db: {
+          url: withPrismaConnectionLimit(
+            process.env.DATABASE_URL,
+            Number(process.env.PRISMA_CONNECTION_LIMIT || (dev ? 5 : 1))
+          ),
+        },
+      }
+    : undefined,
+})
 
 const logInfo = (...args) => {
   if (isDev) {
@@ -433,9 +445,7 @@ app.prepare().then(() => {
       const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim() ||
         (dev ? `http://localhost:${port}` : '')
       const rawUrl = action?.url || '/app'
-      const pushUrl = rawUrl.startsWith('http')
-        ? rawUrl
-        : (baseUrl ? baseUrl + (rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl) : rawUrl)
+      const pushUrl = resolvePushActionUrl(rawUrl, baseUrl)
       const pushPayload = JSON.stringify({
         title: title || 'Xarxa Anglesola',
         body: message || '',

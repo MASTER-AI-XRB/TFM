@@ -2,6 +2,10 @@ import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
+import {
+  ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
+  isGoogleProfileAllowed,
+} from '@/lib/google-signin-policy'
 
 // Fallback per Vercel: si NEXTAUTH_URL no existeix, usar VERCEL_URL
 if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
@@ -19,7 +23,7 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: ALLOW_DANGEROUS_EMAIL_ACCOUNT_LINKING,
     }),
   ],
   events: {
@@ -49,7 +53,10 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    async signIn() {
+    async signIn({ account, profile }) {
+      if (account?.provider === 'google') {
+        return isGoogleProfileAllowed(profile as { email_verified?: boolean } | undefined)
+      }
       return true
     },
     async session({ session, user }) {

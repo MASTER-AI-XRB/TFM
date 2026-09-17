@@ -67,7 +67,5 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('Error guardant subscripció push:', error)
     return apiError('Error guardant subscripció push', 500)
-  } finally {
-    await prisma.$disconnect()
   }
 }
