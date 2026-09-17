@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server'
-import { sessionCookieName } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { expireAuthCookies, nextAuthSessionTokenFromRequest } from '@/lib/auth-cookies'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const response = NextResponse.json({ ok: true })
-  response.cookies.set(sessionCookieName, '', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 0,
-    path: '/',
-  })
+  expireAuthCookies(response)
+  const sessionToken = nextAuthSessionTokenFromRequest(request)
+  if (sessionToken) {
+    await prisma.session.deleteMany({
+      where: { sessionToken },
+    })
+  }
   return response
 }

@@ -5,6 +5,7 @@ const { Server } = require('socket.io')
 const { PrismaClient } = require('@prisma/client')
 const crypto = require('crypto')
 const webPush = require('web-push')
+const { isNotifyAuthorized, resolveHandshakePrincipal } = require('./lib/socket-security')
 
 const dev = process.env.NODE_ENV !== 'production'
 const isDev = dev
@@ -312,13 +313,10 @@ app.prepare().then(() => {
       res.end()
       return true
     }
-    if (notifySecret) {
-      const requestToken = req.headers['x-notify-token']
-      if (requestToken !== notifySecret) {
-        res.writeHead(401, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }))
-        return true
-      }
+    if (!isNotifyAuthorized(notifySecret, req.headers['x-notify-token'])) {
+      res.writeHead(401, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: false, error: 'Unauthorized' }))
+      return true
     }
     try {
       const data = await parseJsonBody(req)
@@ -360,13 +358,10 @@ app.prepare().then(() => {
       res.end()
       return true
     }
-    if (notifySecret) {
-      const requestToken = req.headers['x-notify-token']
-      if (requestToken !== notifySecret) {
-        res.writeHead(401, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }))
-        return true
-      }
+    if (!isNotifyAuthorized(notifySecret, req.headers['x-notify-token'])) {
+      res.writeHead(401, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: false, error: 'Unauthorized' }))
+      return true
     }
 
     try {
@@ -559,18 +554,16 @@ app.prepare().then(() => {
 
     ioInstance.use((socket, next) => {
       const payload = getSocketAuthPayload(socket)
-      if (payload) {
-        socket.data.userId = payload.userId
-        socket.data.nickname = payload.nickname
+      const principal = resolveHandshakePrincipal({
+        tokenUserId: payload?.userId ?? null,
+        tokenNickname: payload?.nickname ?? null,
+        query: socket.handshake.query || {},
+        nodeEnv: process.env.NODE_ENV,
+      })
+      if (principal.userId && principal.nickname) {
+        socket.data.userId = principal.userId
+        socket.data.nickname = principal.nickname
         return next()
-      }
-      if (dev) {
-        const { userId, nickname } = socket.handshake.query || {}
-        if (userId && nickname) {
-          socket.data.userId = String(userId)
-          socket.data.nickname = String(nickname)
-          return next()
-        }
       }
       return next(new Error('Unauthorized'))
     })

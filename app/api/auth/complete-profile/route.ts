@@ -40,10 +40,14 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data: { nickname: sanitizedNickname },
-      select: { id: true, nickname: true },
+      select: { id: true, nickname: true, sessionVersion: true },
     })
 
-    const token = createSessionToken(user.id, user.nickname || '')
+    const token = createSessionToken(
+      user.id,
+      user.nickname || '',
+      user.sessionVersion
+    )
     if (!token && process.env.NODE_ENV === 'production') {
       return apiError('AUTH_SECRET no configurat a producció', 500)
     }

@@ -3,18 +3,18 @@ import { prisma } from '@/lib/prisma'
 import { getAuthUserId } from '@/lib/auth'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
+import { deleteStoredProductImages } from '@/lib/stored-images'
 
 export const dynamic = 'force-dynamic'
 
 export async function DELETE(request: NextRequest) {
   try {
-    const userId = getAuthUserId(request)
+    const userId = await getAuthUserId(request)
 
     if (!userId) {
       return apiError('Usuari no autenticat', 401)
     }
 
-    // Verificar que l'usuari existeix
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, nickname: true },
@@ -24,8 +24,12 @@ export async function DELETE(request: NextRequest) {
       return apiError('Usuari no trobat', 404)
     }
 
-    // Eliminar totes les dades de l'usuari
-    // Prisma eliminarà automàticament les relacions amb onDelete: Cascade
+    const products = await prisma.product.findMany({
+      where: { userId },
+      select: { images: true },
+    })
+    await Promise.all(products.map((product) => deleteStoredProductImages(product.images)))
+
     await prisma.user.delete({
       where: { id: userId },
     })

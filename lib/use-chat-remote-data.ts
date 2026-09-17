@@ -32,10 +32,14 @@ export function useReserveOnDmOpen(
   const urlProductId = searchParams.get('productId')
   useSWR(
     urlNickname && urlProductId && nickname && nickname !== urlNickname
-      ? (['reserve-on-dm-open', urlProductId] as const)
+      ? (['reserve-on-dm-open', urlProductId, urlNickname] as const)
       : null,
-    ([, productId]) =>
-      fetch(`/api/products/${productId}/reserve-on-dm-open`, { method: 'POST' }).then((r) => r.ok),
+    ([, productId, ownerNickname]) =>
+      fetch(`/api/products/${productId}/reserve-on-dm-open`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ownerNickname }),
+      }).then((r) => r.ok),
     { revalidateOnFocus: false, shouldRetryOnError: false }
   )
 }

@@ -17,7 +17,7 @@ export async function PATCH(
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)
     }
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
     const { prestec } = await request.json()
 
     if (!authUserId) {

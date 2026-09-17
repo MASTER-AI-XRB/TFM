@@ -22,6 +22,9 @@
 # Cursor
 .cursorrules
 
+# security-audit-skill output (must stay untracked)
+.security-audit/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

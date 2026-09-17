@@ -17,7 +17,7 @@ export async function PATCH(
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)
     }
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
     const body = await request.json().catch(() => ({}))
     const reserved = body.reserved
 
@@ -142,8 +142,7 @@ export async function PATCH(
     }
 
     const mayUnreserve =
-      product.reservedById === authUserId ||
-      (product.reservedById == null && product.userId === authUserId)
+      product.userId === authUserId || product.reservedById === authUserId
     if (!mayUnreserve) {
       return apiError('Només qui ha sol·licitat la reserva pot finalitzar-la', 403)
     }

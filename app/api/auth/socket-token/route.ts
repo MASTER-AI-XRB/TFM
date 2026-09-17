@@ -13,11 +13,15 @@ import { logError } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
-async function buildTokenResponse(user: { id: string; nickname: string | null }) {
+async function buildTokenResponse(user: {
+  id: string
+  nickname: string | null
+  sessionVersion: number
+}) {
   if (!user.nickname) {
     return apiOk({ needsNickname: true })
   }
-  const token = createSessionToken(user.id, user.nickname)
+  const token = createSessionToken(user.id, user.nickname, user.sessionVersion)
   if (!token && process.env.NODE_ENV === 'production') {
     return apiError('AUTH_SECRET no configurat a producció', 500)
   }
@@ -39,7 +43,13 @@ async function buildTokenResponse(user: { id: string; nickname: string | null })
 
 export async function POST(request: NextRequest) {
   try {
-    let user: { id: string; nickname: string | null; password: string | null; lastLoginAt: Date | null } | null = null
+    let user: {
+      id: string
+      nickname: string | null
+      password: string | null
+      lastLoginAt: Date | null
+      sessionVersion: number
+    } | null = null
 
     const session = await getServerSession(authOptions)
     if (session?.user) {
@@ -48,12 +58,18 @@ export async function POST(request: NextRequest) {
       user = userId
         ? await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, nickname: true, password: true, lastLoginAt: true },
+            select: {
+              id: true,
+              nickname: true,
+              password: true,
+              lastLoginAt: true,
+              sessionVersion: true,
+            },
           })
         : userEmail
           ? await prisma.user.findUnique({
               where: { email: userEmail },
-              select: { id: true, nickname: true, password: true, lastLoginAt: true },
+              select: { id: true, nickname: true, password: true, lastLoginAt: true, sessionVersion: true },
             })
           : null
     }
@@ -64,7 +80,13 @@ export async function POST(request: NextRequest) {
       if (payload?.userId) {
         user = await prisma.user.findUnique({
           where: { id: payload.userId },
-          select: { id: true, nickname: true, password: true, lastLoginAt: true },
+          select: {
+            id: true,
+            nickname: true,
+            password: true,
+            lastLoginAt: true,
+            sessionVersion: true,
+          },
         })
       }
     }

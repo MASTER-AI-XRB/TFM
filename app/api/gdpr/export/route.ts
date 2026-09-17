@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getAuthUserId(request)
+    const userId = await getAuthUserId(request)
 
     if (!userId) {
       return apiError('Usuari no autenticat', 401)

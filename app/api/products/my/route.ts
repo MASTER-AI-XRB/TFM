@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 // Obtenir productes de l'usuari
 export async function GET(request: NextRequest) {
   try {
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)

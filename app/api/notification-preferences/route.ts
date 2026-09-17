@@ -24,7 +24,7 @@ const normalizeList = (items: string[], maxItems: number, maxLength: number) => 
 export async function GET(request: NextRequest) {
   const prisma = getPrisma()
   try {
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)
     }
@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
   try {
     const { receiveAll, allowedNicknames, allowedProductKeywords, enabledTypes } =
       await request.json()
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)

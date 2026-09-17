@@ -23,7 +23,7 @@ function getPrisma() {
 export async function GET(request: NextRequest) {
   const prisma = getPrisma()
   try {
-    const userId = getAuthUserId(request)
+    const userId = await getAuthUserId(request)
 
     if (!userId) {
       return apiError('Usuari no autenticat', 401)
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   const prisma = getPrisma()
   try {
     const { productId } = await request.json()
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)
@@ -181,7 +181,7 @@ export async function DELETE(request: NextRequest) {
   const prisma = getPrisma()
   try {
     const { productId } = await request.json()
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)

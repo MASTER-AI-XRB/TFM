@@ -74,6 +74,7 @@ describe('POST /api/auth/socket-token', () => {
       nickname: 'veí',
       password: null,
       lastLoginAt: expiredLastLogin(),
+      sessionVersion: 0,
     })
     mockUpdate.mockResolvedValue({ id: 'user-1', nickname: null })
 
@@ -96,6 +97,7 @@ describe('POST /api/auth/socket-token', () => {
       nickname: 'anna',
       password: 'hashed',
       lastLoginAt: new Date(),
+      sessionVersion: 0,
     })
 
     const response = await POST(postRequest(token ?? undefined))

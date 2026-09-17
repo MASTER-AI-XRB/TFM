@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { NextRequest } from 'next/server'
 import { SESSION_COOKIE_NAME } from '@/lib/auth-guard'
+import { prisma } from '@/lib/prisma'
 
 const SESSION_COOKIE = SESSION_COOKIE_NAME
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24
@@ -30,13 +31,18 @@ const base64UrlDecode = (value: string) => {
 const sign = (payload: string, secret: string) =>
   crypto.createHmac('sha256', secret).update(payload).digest('base64url')
 
-export const createSessionToken = (userId: string, nickname: string) => {
+export const createSessionToken = (
+  userId: string,
+  nickname: string,
+  sessionVersion = 0
+) => {
   const secret = getSecret()
   if (!secret) return null
   const now = Math.floor(Date.now() / 1000)
   const payload = JSON.stringify({
     userId,
     nickname,
+    sv: sessionVersion,
     iat: now,
     exp: now + SESSION_MAX_AGE_SECONDS,
   })
@@ -63,17 +69,28 @@ export const verifySessionToken = (token?: string | null) => {
     userId: string
     nickname: string
     exp: number
+    sv?: number
   }
   if (!payload?.userId || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
     return null
   }
-  return payload
+  return {
+    userId: payload.userId,
+    nickname: payload.nickname,
+    sv: payload.sv ?? 0,
+  }
 }
 
-export const getAuthUserId = (request: NextRequest) => {
+export const getAuthUserId = async (request: NextRequest) => {
   const token = request.cookies.get(SESSION_COOKIE)?.value
   const payload = verifySessionToken(token)
-  return payload?.userId || null
+  if (!payload?.userId) return null
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { sessionVersion: true },
+  })
+  if (!user || user.sessionVersion !== payload.sv) return null
+  return payload.userId
 }
 
 export const sessionCookieName = SESSION_COOKIE

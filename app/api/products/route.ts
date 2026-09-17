@@ -14,7 +14,7 @@ import { logError, logWarn } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     const products = await prisma.product.findMany({
       where: authUserId ? { userId: { not: authUserId } } : undefined,
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)

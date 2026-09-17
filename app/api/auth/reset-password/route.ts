@@ -1,10 +1,8 @@
 import { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { prisma } from '@/lib/prisma'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,12 +20,11 @@ export async function POST(request: NextRequest) {
       return apiError('La contrasenya ha de tenir almenys 6 caràcters', 400)
     }
 
-    // Buscar usuari amb el token vàlid
     const user = await prisma.user.findFirst({
       where: {
         resetToken: token,
         resetTokenExpiry: {
-          gt: new Date(), // Token encara vàlid
+          gt: new Date(),
         },
       },
     })
@@ -36,17 +33,19 @@ export async function POST(request: NextRequest) {
       return apiError('Token invàlid o expirat', 400)
     }
 
-    // Encriptar nova contrasenya
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Actualitzar contrasenya i eliminar token
     await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedPassword,
         resetToken: null,
         resetTokenExpiry: null,
+        sessionVersion: { increment: 1 },
       },
+    })
+    await prisma.session.deleteMany({
+      where: { userId: user.id },
     })
 
     return apiOk({
@@ -57,4 +56,3 @@ export async function POST(request: NextRequest) {
     return apiError('Error restablint la contrasenya', 500)
   }
 }
-

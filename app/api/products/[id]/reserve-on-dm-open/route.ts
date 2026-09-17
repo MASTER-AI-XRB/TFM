@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthUserId } from '@/lib/auth'
-import { validateUuid } from '@/lib/validation'
+import { validateUuid, sanitizeString } from '@/lib/validation'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logInfo, logWarn } from '@/lib/logger'
 import { getSocketServerUrl } from '@/lib/socket'
@@ -21,18 +21,32 @@ export async function POST(
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)
     }
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)
     }
 
+    const body = await request.json().catch(() => ({} as { ownerNickname?: unknown }))
+    const ownerNickname = sanitizeString(
+      typeof body.ownerNickname === 'string' ? body.ownerNickname : '',
+      20
+    )
+    if (!ownerNickname) {
+      return apiError('Cal el nickname del propietari', 400)
+    }
+
     const product = await prisma.product.findUnique({
       where: { id: resolvedParams.id },
+      include: { user: { select: { nickname: true } } },
     })
 
     if (!product) {
       return apiError('Producte no trobat', 404)
+    }
+
+    if (product.user.nickname !== ownerNickname) {
+      return apiError('Aquest producte no pertany a aquest veí', 403)
     }
 
     if (product.userId === authUserId) {

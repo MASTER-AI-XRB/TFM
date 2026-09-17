@@ -27,7 +27,7 @@ function isValidSubscription(sub: unknown): sub is PushSubscriptionJSON {
 
 export async function POST(request: NextRequest) {
   try {
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)
     }

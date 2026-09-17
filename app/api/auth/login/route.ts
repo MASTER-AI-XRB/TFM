@@ -74,31 +74,25 @@ export async function POST(request: NextRequest) {
       })
     } else {
       // Login d'usuari existent
-      if (!user) {
+      if (!user || !user.password) {
         return apiError('Nickname o contrasenya incorrectes', 401)
       }
 
-      // Si l'usuari no té contrasenya (usuaris antics), crear-la
-      if (!user.password) {
-        const hashedPassword = await bcrypt.hash(password, 10)
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { password: hashedPassword, lastLoginAt: new Date() },
-        })
-      } else {
-        // Verificar contrasenya per a usuaris existents
-        const isValidPassword = await bcrypt.compare(password, user.password)
-        if (!isValidPassword) {
-          return apiError('Nickname o contrasenya incorrectes', 401)
-        }
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastLoginAt: new Date() },
-        })
+      const isValidPassword = await bcrypt.compare(password, user.password)
+      if (!isValidPassword) {
+        return apiError('Nickname o contrasenya incorrectes', 401)
       }
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      })
     }
 
-    const token = createSessionToken(user.id, user.nickname ?? '')
+    const token = createSessionToken(
+      user.id,
+      user.nickname ?? '',
+      user.sessionVersion ?? 0
+    )
     if (!token && process.env.NODE_ENV === 'production') {
       return apiError('AUTH_SECRET no configurat a producció', 500)
     }

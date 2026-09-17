@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 // Comprovar si un producte està als preferits de l'usuari
 export async function GET(request: NextRequest) {
   try {
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
     const productId = new URL(request.url).searchParams.get('productId')
 
     if (!authUserId || !productId) {

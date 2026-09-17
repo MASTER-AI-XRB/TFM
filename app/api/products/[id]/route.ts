@@ -14,6 +14,7 @@ import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logWarn } from '@/lib/logger'
 import { getSocketServerUrl } from '@/lib/socket'
 import { postSocketNotify } from '@/lib/notify-fetch'
+import { deleteStoredProductImages } from '@/lib/stored-images'
 
 export async function GET(
   request: NextRequest,
@@ -55,7 +56,7 @@ export async function DELETE(
     if (!idValidation.valid) {
       return apiError(idValidation.error || 'Producte no vàlid', 400)
     }
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return apiError('Usuari no autenticat', 401)
@@ -63,7 +64,7 @@ export async function DELETE(
 
     const product = await prisma.product.findUnique({
       where: { id: resolvedParams.id },
-      select: { id: true, userId: true, name: true },
+      select: { id: true, userId: true, name: true, images: true },
     })
 
     if (!product) {
@@ -99,6 +100,8 @@ export async function DELETE(
       ownerNickname = owner?.nickname ?? null
       favorites = favs
     }
+
+    await deleteStoredProductImages(product.images)
 
     await prisma.product.delete({
       where: { id: resolvedParams.id },
@@ -158,7 +161,7 @@ export async function PATCH(
   try {
     const resolvedParams = await params
     const formData = await request.formData()
-    const authUserId = getAuthUserId(request)
+    const authUserId = await getAuthUserId(request)
 
     if (!authUserId) {
       return NextResponse.json(

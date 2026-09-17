@@ -8,6 +8,7 @@ const { Server } = require('socket.io')
 const { PrismaClient } = require('@prisma/client')
 const webPush = require('web-push')
 const crypto = require('crypto')
+const { isNotifyAuthorized, resolveHandshakePrincipal } = require('./lib/socket-security')
 
 const port = process.env.PORT || 3001
 const prisma = new PrismaClient()
@@ -213,15 +214,14 @@ const userInfo = new Map() // userId -> { nickname }
 io.on('connection', (socket) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token
   const payload = token ? verifySessionToken(token) : null
-  let userId = payload?.userId
-  let nickname = payload?.nickname ?? null
-  if (!userId || !nickname) {
-    if (dev) {
-      const q = socket.handshake.query || {}
-      userId = userId || (typeof q.userId === 'string' ? q.userId : null)
-      nickname = nickname || (typeof q.nickname === 'string' ? q.nickname : null)
-    }
-  }
+  const principal = resolveHandshakePrincipal({
+    tokenUserId: payload?.userId ?? null,
+    tokenNickname: payload?.nickname ?? null,
+    query: socket.handshake.query || {},
+    nodeEnv: process.env.NODE_ENV,
+  })
+  const userId = principal.userId
+  const nickname = principal.nickname
 
   console.log('=== NOVA CONNEXIÓ SOCKET.IO ===')
   console.log(`Origin: ${socket.handshake.headers.origin || 'sense origin'}`)
@@ -529,13 +529,10 @@ io.on('connection', (socket) => {
     }
 
     const notifySecret = process.env.NOTIFY_SECRET || process.env.AUTH_SECRET
-    if (notifySecret) {
-      const requestToken = req.headers['x-notify-token']
-      if (requestToken !== notifySecret) {
-        res.writeHead(401, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ success: false, error: 'Unauthorized' }))
-        return
-      }
+    if (!isNotifyAuthorized(notifySecret, req.headers['x-notify-token'])) {
+      res.writeHead(401, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: false, error: 'Unauthorized' }))
+      return
     }
 
     let body = ''
