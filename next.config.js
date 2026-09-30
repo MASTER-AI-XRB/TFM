@@ -21,6 +21,15 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || '',
   },
+  async redirects() {
+    return [
+      {
+        source: '/presentacio',
+        destination: '/presentacio.html',
+        permanent: false,
+      },
+    ]
+  },
   // Seguretat
   async headers() {
     const baseHeaders = [
@@ -59,8 +68,8 @@ const nextConfig = {
           "form-action 'self'",
           "frame-ancestors 'self'",
           "img-src 'self' data: blob: https:",
-          "font-src 'self' data:",
-          "style-src 'self' 'unsafe-inline'",
+          "font-src 'self' data: https://fonts.gstatic.com",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
           "connect-src 'self' https: wss:",
         ].join('; '),

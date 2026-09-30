@@ -6,7 +6,7 @@
     { "title": "Página web", "url": "https://xarxanglesola.vercel.app/" },
     { "title": "Repositorio", "url": "https://github.com/MASTER-AI-XRB/XARXANGLESOLA" },
     { "title": "Snapshot TFM", "url": "https://github.com/MASTER-AI-XRB/TFM" },
-    { "title": "Presentación TFM", "url": "docs/presentacio.html" }
+    { "title": "Presentación TFM", "url": "https://xarxanglesola.vercel.app/presentacio" }
   ],
   "tags": ["nextjs", "react19", "pnpm", "typescript", "prisma", "socket.io", "tailwind", "intercambio-productos", "chat-tiempo-real"]
 }

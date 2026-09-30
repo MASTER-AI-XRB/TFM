@@ -9,7 +9,7 @@ Este repositorio es el **Trabajo de Fin de Máster** (máster agnóstico en tecn
 | **App en funcionamiento** | [https://xarxanglesola.vercel.app](https://xarxanglesola.vercel.app) |
 | **Código (GitHub)** | [https://github.com/MASTER-AI-XRB/XARXANGLESOLA](https://github.com/MASTER-AI-XRB/XARXANGLESOLA) |
 | **Snapshot TFM** | [https://github.com/MASTER-AI-XRB/TFM](https://github.com/MASTER-AI-XRB/TFM) |
-| **Presentación (slides)** | [docs/presentacio.html](docs/presentacio.html) — abre el archivo en el navegador |
+| **Presentación (slides)** | [https://xarxanglesola.vercel.app/presentacio](https://xarxanglesola.vercel.app/presentacio) — también en [docs/presentacio.html](docs/presentacio.html) |
 
 Si el repositorio es privado, hay que conceder acceso a `mouredev@gmail.com`.
 
@@ -200,8 +200,9 @@ Checklist de producción: [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md). Lo
 
 Las **slides** del TFM son un HTML autocontenido:
 
-- Archivo: [docs/presentacio.html](docs/presentacio.html)
-- Uso: ábrelo con el navegador (doble clic o «Open with Live Server»). Flechas o espacio para avanzar. `F` para pantalla completa. Imprimir / guardar como PDF desde el navegador si hay que adjuntar un documento.
+- Archivo en el repo: [docs/presentacio.html](docs/presentacio.html) (copia servida en [public/presentacio.html](public/presentacio.html))
+- URL pública: [https://xarxanglesola.vercel.app/presentacio](https://xarxanglesola.vercel.app/presentacio)
+- Uso: ábrelo con el navegador. Flechas o espacio para avanzar. `F` para pantalla completa. Imprimir / guardar como PDF desde el navegador si hay que adjuntar un documento.
 
 ---
 
@@ -214,7 +215,7 @@ Correspondencia con [DOC-TFM.pdf](DOC-TFM.pdf):
 | 1. Documentación (descripción, stack, instalación, estructura, funcionalidades) | Este `README.md` |
 | 2. Código | Repositorio GitHub (opción preferida del enunciado): `MASTER-AI-XRB/XARXANGLESOLA`; snapshot académico en `MASTER-AI-XRB/TFM` |
 | 3. Despliegue | https://xarxanglesola.vercel.app — también documentado aquí |
-| 4. Slides | `docs/presentacio.html` dentro del directorio del código |
+| 4. Slides | https://xarxanglesola.vercel.app/presentacio — HTML también en `docs/presentacio.html` |
 
 ---
 

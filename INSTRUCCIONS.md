@@ -7,4 +7,4 @@ La guía de instalación, stack, estructura y funcionalidades está en el **[REA
 - Tests: [docs/TESTING.md](docs/TESTING.md).
 - Calidad de código React/Next: `pnpm dlx react-doctor@latest` (no sustituye `pnpm audit`).
 - Despliegue: [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md) y [RAILWAY_DEPLOY.md](RAILWAY_DEPLOY.md).
-- Presentación TFM: [docs/presentacio.html](docs/presentacio.html).
+- Presentación TFM: [https://xarxanglesola.vercel.app/presentacio](https://xarxanglesola.vercel.app/presentacio) ([docs/presentacio.html](docs/presentacio.html) en el repo).
