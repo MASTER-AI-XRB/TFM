@@ -11,19 +11,22 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(uuid())
-  nickname         String?   @unique
-  email            String?   @unique
-  name             String?
-  image            String?
-  emailVerified    DateTime?
-  password         String?
-  resetToken       String?
-  resetTokenExpiry DateTime?
-  lastLoginAt      DateTime?
-  sessionVersion   Int       @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  nickname               String?   @unique
+  email                  String?   @unique
+  pendingEmail           String?
+  emailVerifyToken       String?
+  emailVerifyTokenExpiry DateTime?
+  name                   String?
+  image                  String?
+  emailVerified          DateTime?
+  password               String?
+  resetToken             String?
+  resetTokenExpiry       DateTime?
+  lastLoginAt            DateTime?
+  sessionVersion         Int       @default(0)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   products               Product[]
   productsReserved       Product[]              @relation("ProductReservedBy")
@@ -33,6 +36,8 @@ model User {
   pushSubscriptions      PushSubscription[]
   accounts               Account[]
   sessions               Session[]
+
+  @@index([emailVerifyToken])
 }
 
 model Account {

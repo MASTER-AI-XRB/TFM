@@ -22,6 +22,10 @@ vi.mock('@/lib/logger', () => ({
   logError: vi.fn(),
 }))
 
+vi.mock('@/lib/mailer', () => ({
+  sendVerificationEmail: vi.fn(),
+}))
+
 function postLogin(body: Record<string, unknown>) {
   return new NextRequest('http://localhost:3000/api/auth/login', {
     method: 'POST',

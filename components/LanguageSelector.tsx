@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
@@ -12,39 +12,84 @@ const LANGUAGES = [
   { code: 'en' as const, name: 'English' },
 ]
 
+const DROPDOWN_GAP = 4
+
 export default function LanguageSelector({ forceMobile = false }: { forceMobile?: boolean }) {
   const { locale, setLocale } = useI18n()
   const { theme } = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
   const [anchorRect, setAnchorRect] = useState<{ bottom: number; left: number } | null>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  const DROPDOWN_GAP = 4
 
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)')
-    setIsMobile(mq.matches)
-    const handler = () => setIsMobile(mq.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [])
+  const closeMenu = () => {
+    setMobileOpen(false)
+    setAnchorRect(null)
+  }
 
   const currentLanguage = LANGUAGES.find((lang) => lang.code === locale) || LANGUAGES[0]
   const iconSrc = theme === 'dark' ? '/lang_icon_dark.png' : '/lang_icon.png'
+  const menu =
+    mobileOpen && typeof document !== 'undefined' && anchorRect
+      ? createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[55]"
+              onClick={closeMenu}
+              aria-hidden
+            />
+            <div
+              role="menu"
+              aria-label="Idioma"
+              className="fixed z-[60] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg dark:shadow-gray-900 min-w-[120px]"
+              style={{
+                top: anchorRect.bottom + DROPDOWN_GAP,
+                left: anchorRect.left,
+              }}
+            >
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setLocale(lang.code)
+                    closeMenu()
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition ${
+                    locale === lang.code
+                      ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
+                  } ${lang.code === LANGUAGES[0].code ? 'rounded-t-md' : ''} ${
+                    lang.code === LANGUAGES[LANGUAGES.length - 1].code ? 'rounded-b-md' : ''
+                  }`}
+                >
+                  {lang.name}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body
+        )
+      : null
 
   return (
     <>
-      {/* Versió mòbil: botó amb icona */}
-      <div className={forceMobile ? "relative" : "sm:hidden relative"}>
+      <div className={forceMobile ? 'relative' : 'sm:hidden relative'}>
         <button
           ref={buttonRef}
+          type="button"
+          aria-expanded={mobileOpen}
+          aria-haspopup="menu"
           onClick={() => {
-            if (!mobileOpen && buttonRef.current && isMobile) {
+            if (mobileOpen) {
+              closeMenu()
+              return
+            }
+            if (buttonRef.current) {
               const rect = buttonRef.current.getBoundingClientRect()
               setAnchorRect({ bottom: rect.bottom, left: rect.left })
             }
-            if (mobileOpen) setAnchorRect(null)
-            setMobileOpen(!mobileOpen)
+            setMobileOpen(true)
           }}
           className="flex items-center gap-1 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           title={currentLanguage.name}
@@ -57,79 +102,9 @@ export default function LanguageSelector({ forceMobile = false }: { forceMobile?
             className="object-contain"
           />
         </button>
-        {mobileOpen && (
-          <>
-            {isMobile && typeof document !== 'undefined' && anchorRect ? (
-              createPortal(
-                <>
-                  <div
-                    className="fixed inset-0 z-[55]"
-                    onClick={() => {
-                      setMobileOpen(false)
-                      setAnchorRect(null)
-                    }}
-                    aria-hidden
-                  />
-                  <div
-                    className="fixed z-[60] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg dark:shadow-gray-900 min-w-[120px]"
-                    style={{
-                      top: anchorRect.bottom + DROPDOWN_GAP,
-                      left: anchorRect.left,
-                    }}
-                  >
-                    {LANGUAGES.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => {
-                          setLocale(lang.code)
-                          setAnchorRect(null)
-                          setMobileOpen(false)
-                        }}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition ${
-                          locale === lang.code ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300'
-                        } ${lang.code === LANGUAGES[0].code ? 'rounded-t-md' : ''} ${
-                          lang.code === LANGUAGES[LANGUAGES.length - 1].code ? 'rounded-b-md' : ''
-                        }`}
-                      >
-                        {lang.name}
-                      </button>
-                    ))}
-                  </div>
-                </>,
-                document.body
-              )
-            ) : (
-              <>
-                <div
-                  className="fixed inset-0 z-[55]"
-                  onClick={() => setMobileOpen(false)}
-                  aria-hidden
-                />
-                <div className="absolute right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg dark:shadow-gray-900 z-20 min-w-[120px]">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setLocale(lang.code)
-                        setMobileOpen(false)
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition ${
-                        locale === lang.code ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium' : 'text-gray-700 dark:text-gray-300'
-                      } ${lang.code === LANGUAGES[0].code ? 'rounded-t-md' : ''} ${
-                        lang.code === LANGUAGES[LANGUAGES.length - 1].code ? 'rounded-b-md' : ''
-                      }`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </>
-        )}
+        {menu}
       </div>
 
-      {/* Versió desktop: desplegable complet */}
       {!forceMobile && (
       <div className="hidden sm:flex items-center gap-2">
         <Image
@@ -167,4 +142,3 @@ export default function LanguageSelector({ forceMobile = false }: { forceMobile?
     </>
   )
 }
-

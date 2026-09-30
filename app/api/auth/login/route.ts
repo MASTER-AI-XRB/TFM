@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs'
 import { createSessionToken, sessionCookieName, sessionMaxAgeSeconds } from '@/lib/auth'
 import { apiError } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
+import { emailTokenExpiry, newEmailToken } from '@/lib/email-token'
+import { sendVerificationEmail } from '@/lib/mailer'
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,16 +64,25 @@ export async function POST(request: NextRequest) {
         return apiError('Aquest email ja està registrat', 400)
       }
 
-      // Crear nou usuari amb email i contrasenya encriptada
       const hashedPassword = await bcrypt.hash(password, 10)
+      const verifyToken = newEmailToken()
+      const pendingEmail = email.trim().toLowerCase()
       user = await prisma.user.create({
         data: {
           nickname: sanitizedNickname,
-          email: email.trim().toLowerCase(),
+          email: null,
+          pendingEmail,
           password: hashedPassword,
           lastLoginAt: new Date(),
+          emailVerifyToken: verifyToken.hash,
+          emailVerifyTokenExpiry: emailTokenExpiry(),
         },
       })
+      try {
+        await sendVerificationEmail(pendingEmail, sanitizedNickname, verifyToken.raw)
+      } catch (emailError) {
+        logError('Error enviant verificació d\'email al registre:', emailError)
+      }
     } else {
       // Login d'usuari existent
       if (!user || !user.password) {
@@ -99,6 +110,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       nickname: user.nickname,
       socketToken: token || null,
+      needsEmailVerification: Boolean(isNewUser),
     })
     if (token) {
       response.cookies.set(sessionCookieName, token, {
