@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { hashEmailToken } from '@/lib/email-token'
 
 const mockFindFirst = vi.fn()
 const mockUpdate = vi.fn()
@@ -42,13 +43,20 @@ describe('POST /api/auth/reset-password', () => {
     const { POST } = await import('@/app/api/auth/reset-password/route')
     mockFindFirst.mockResolvedValue({
       id: 'user-reset',
-      resetToken: 'valid-token',
+      resetToken: hashEmailToken('valid-token'),
       resetTokenExpiry: new Date(Date.now() + 60_000),
     })
 
     const response = await POST(
       postReset({ token: 'valid-token', password: 'nova-pass' })
     )
+
+    expect(mockFindFirst).toHaveBeenCalledWith({
+      where: {
+        resetToken: hashEmailToken('valid-token'),
+        resetTokenExpiry: { gt: expect.any(Date) },
+      },
+    })
     const body = await response.json()
 
     expect(response.status).toBe(200)

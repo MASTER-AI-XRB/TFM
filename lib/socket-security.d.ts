@@ -1,3 +1,8 @@
+export function isSessionVersionCurrent(
+  tokenSv?: number | string | null,
+  dbSessionVersion?: number | string | null
+): boolean
+
 export function isNotifyAuthorized(
   notifySecret?: string | null,
   requestToken?: string | string[] | null

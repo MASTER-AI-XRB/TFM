@@ -5,7 +5,12 @@ const { Server } = require('socket.io')
 const { PrismaClient } = require('@prisma/client')
 const crypto = require('crypto')
 const webPush = require('web-push')
-const { isNotifyAuthorized, resolveHandshakePrincipal, resolvePushActionUrl } = require('./lib/socket-security')
+const {
+  isNotifyAuthorized,
+  isSessionVersionCurrent,
+  resolveHandshakePrincipal,
+  resolvePushActionUrl,
+} = require('./lib/socket-security')
 const { withPrismaConnectionLimit } = require('./lib/prisma-url')
 
 const dev = process.env.NODE_ENV !== 'production'
@@ -562,8 +567,21 @@ app.prepare().then(() => {
       logInfo('Context:', err.context)
     })
 
-    ioInstance.use((socket, next) => {
+    ioInstance.use(async (socket, next) => {
       const payload = getSocketAuthPayload(socket)
+      if (payload?.userId) {
+        try {
+          const sessionUser = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: { sessionVersion: true },
+          })
+          if (!isSessionVersionCurrent(payload.sv, sessionUser?.sessionVersion)) {
+            return next(new Error('Unauthorized'))
+          }
+        } catch {
+          return next(new Error('Unauthorized'))
+        }
+      }
       const principal = resolveHandshakePrincipal({
         tokenUserId: payload?.userId ?? null,
         tokenNickname: payload?.nickname ?? null,

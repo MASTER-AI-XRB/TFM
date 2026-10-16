@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   isNotifyAuthorized,
+  isSessionVersionCurrent,
   resolveHandshakePrincipal,
 } from '@/lib/socket-security'
 
@@ -61,5 +62,20 @@ describe('resolveHandshakePrincipal', () => {
         nodeEnv: 'development',
       })
     ).toEqual({ userId: 'real-id', nickname: 'anna' })
+  })
+})
+
+describe('isSessionVersionCurrent', () => {
+  it('accepta quan el sv del token coincideix amb User.sessionVersion', () => {
+    expect(isSessionVersionCurrent(0, 0)).toBe(true)
+    expect(isSessionVersionCurrent(3, 3)).toBe(true)
+    expect(isSessionVersionCurrent(undefined, 0)).toBe(true)
+  })
+
+  it('rebutja un token mintat abans d’incrementar sessionVersion', () => {
+    expect(isSessionVersionCurrent(0, 1)).toBe(false)
+    expect(isSessionVersionCurrent(2, 3)).toBe(false)
+    expect(isSessionVersionCurrent(0, null)).toBe(false)
+    expect(isSessionVersionCurrent(0, undefined)).toBe(false)
   })
 })

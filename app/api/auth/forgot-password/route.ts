@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError, logInfo } from '@/lib/logger'
+import { newEmailToken } from '@/lib/email-token'
 
 // Configuració del transporter d'email (ajusta segons el teu proveïdor)
 const getEmailTransporter = () => {
@@ -60,23 +60,20 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generar token de recuperació
-    const resetToken = crypto.randomBytes(32).toString('hex')
+    const resetToken = newEmailToken()
     const resetTokenExpiry = new Date()
-    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1) // Vàlid per 1 hora
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1)
 
-    // Guardar token a la base de dades
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        resetToken,
+        resetToken: resetToken.hash,
         resetTokenExpiry,
       },
     })
 
-    // Generar URL de recuperació
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const resetUrl = `${baseUrl}/reset-password/${resetToken}`
+    const resetUrl = `${baseUrl}/reset-password/${resetToken.raw}`
 
     // Enviar email
     try {

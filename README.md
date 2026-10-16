@@ -202,6 +202,7 @@ Las **slides** del TFM son un HTML autocontenido:
 
 - Archivo en el repo: [docs/presentacio.html](docs/presentacio.html) (copia servida en [public/presentacio.html](public/presentacio.html))
 - URL pública: [https://xarxanglesola.vercel.app/presentacio](https://xarxanglesola.vercel.app/presentacio)
+- Guión hablado: [docs/presentacio-speech.md](docs/presentacio-speech.md)
 - Uso: ábrelo con el navegador. Flechas o espacio para avanzar. `F` para pantalla completa. Imprimir / guardar como PDF desde el navegador si hay que adjuntar un documento.
 
 ---

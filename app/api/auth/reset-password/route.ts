@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { apiError, apiOk } from '@/lib/api-response'
 import { logError } from '@/lib/logger'
+import { hashEmailToken } from '@/lib/email-token'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findFirst({
       where: {
-        resetToken: token,
+        resetToken: hashEmailToken(token.trim()),
         resetTokenExpiry: {
           gt: new Date(),
         },

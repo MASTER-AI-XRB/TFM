@@ -8,7 +8,12 @@ const { Server } = require('socket.io')
 const { PrismaClient } = require('@prisma/client')
 const webPush = require('web-push')
 const crypto = require('crypto')
-const { isNotifyAuthorized, resolveHandshakePrincipal, resolvePushActionUrl } = require('./lib/socket-security')
+const {
+  isNotifyAuthorized,
+  isSessionVersionCurrent,
+  resolveHandshakePrincipal,
+  resolvePushActionUrl,
+} = require('./lib/socket-security')
 const { withPrismaConnectionLimit } = require('./lib/prisma-url')
 
 const port = process.env.PORT || 3001
@@ -223,9 +228,27 @@ const userSockets = new Map() // userId -> socketId
 const socketUsers = new Map() // socketId -> { userId, nickname }
 const userInfo = new Map() // userId -> { nickname }
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token
   const payload = token ? verifySessionToken(token) : null
+  if (payload?.userId) {
+    let sessionUser = null
+    try {
+      sessionUser = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { sessionVersion: true },
+      })
+    } catch (error) {
+      console.warn('Connexió rebutjada: no s\'ha pogut comprovar sessionVersion', error)
+      socket.disconnect(true)
+      return
+    }
+    if (!isSessionVersionCurrent(payload.sv, sessionUser?.sessionVersion)) {
+      console.warn('Connexió rebutjada: sessionVersion no coincideix')
+      socket.disconnect(true)
+      return
+    }
+  }
   const principal = resolveHandshakePrincipal({
     tokenUserId: payload?.userId ?? null,
     tokenNickname: payload?.nickname ?? null,
