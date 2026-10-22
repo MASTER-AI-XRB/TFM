@@ -11,8 +11,6 @@ Este repositorio es el **Trabajo de Fin de Máster** (máster agnóstico en tecn
 | **Snapshot TFM** | [https://github.com/MASTER-AI-XRB/TFM](https://github.com/MASTER-AI-XRB/TFM) |
 | **Presentación (slides)** | [https://xarxanglesola.vercel.app/presentacio](https://xarxanglesola.vercel.app/presentacio) — también en [docs/presentacio.html](docs/presentacio.html) |
 
-Si el repositorio es privado, hay que conceder acceso a `mouredev@gmail.com`.
-
 ---
 
 ## Descripción general
