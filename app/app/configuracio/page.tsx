@@ -108,9 +108,11 @@ export default function ConfiguracioPage() {
         showError(t('common.error'), data?.error ?? t('legal.gdpr.deleteError'))
         return
       }
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
       clearStoredSession()
-      await signOut({ redirect: false })
-      router.replace('/')
+      await signOut({ redirect: false }).catch(() => null)
+      window.location.replace('/')
+      return
     } catch {
       showError(t('common.error'), t('legal.gdpr.deleteError'))
     } finally {

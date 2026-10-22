@@ -25,6 +25,9 @@
 # security-audit-skill output (must stay untracked)
 .security-audit/
 
+# guió de presentació en castellà (només local)
+docs/presentacio-speech-es.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*

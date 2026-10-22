@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { signOut, useSession } from 'next-auth/react'
@@ -29,7 +29,6 @@ export default function AppLayout({
   const [socketReady, setSocketReady] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const storedNickname = useStoredNickname()
-  const router = useRouter()
   const pathname = usePathname()
   const sessionHook = useSession()
   const { data: session, status } = sessionHook ?? { data: null, status: 'loading' as const }
@@ -117,15 +116,13 @@ export default function AppLayout({
       cancelled = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps -- session?.user?.id evita bucle quan useSession retorna nova referència
-  }, [router, pathname, status, session?.user?.id, fetchSocketToken])
+  }, [pathname, status, session?.user?.id, fetchSocketToken])
 
-  const handleLogout = () => {
-    fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
     clearStoredSession()
-    if (session) {
-      signOut({ redirect: false }).catch(() => null)
-    }
-    router.push('/')
+    await signOut({ redirect: false }).catch(() => null)
+    window.location.replace('/')
   }
 
   if (!nickname) {
